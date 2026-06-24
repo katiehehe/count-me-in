@@ -26,11 +26,10 @@ export const probabilityDistributionsLesson: Lesson = {
       id: 'sim-dice',
       type: 'simulation',
       title: 'Roll 1000 Dice',
-      body: 'Here is a fair 6-sided die. Roll it 1000 times and look at how often each face comes up. Then change the face values and roll again to see how the distribution shifts.',
+      body: 'Here is a fair 6-sided die. Roll it 1000 times and look at how often each face comes up. Roll again a few times — each run looks a little different, but the bars always settle near an equal 1-in-6 share.',
       simulationConfig: {
         faces: [1, 2, 3, 4, 5, 6],
         rolls: 1000,
-        editable: true,
       },
       feedback: {
         correct:

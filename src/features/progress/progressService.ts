@@ -164,24 +164,28 @@ export async function toggleStepStar(
   return starredSteps
 }
 
-export async function restartLesson(uid: string, lessonId: string) {
+export async function restartLesson(uid: string, lessonId: string, seed?: number) {
   await saveLessonProgress(uid, {
     lessonId,
     currentStepIndex: 0,
     stepAnswers: {},
     starredSteps: [],
+    // Persist the reshuffled seed so the fresh play-through is reproducible on
+    // any device, not just the browser that pressed Restart.
+    ...(seed !== undefined ? { seed } : {}),
   })
 }
 
 export async function advanceStep(uid: string, lessonId: string, stepIndex: number) {
-  const existing = await getLessonProgress(uid, lessonId)
+  // Only move the step pointer. This runs concurrently with the atomic
+  // recordStepAnswer transaction (both are queued in LessonRenderer's
+  // pendingWrites), so it must NEVER echo back stepAnswers / masteryScore /
+  // conceptMastery from a non-atomic read — doing so can overwrite an answer
+  // that committed in between this read and write. updateDoc merges at the
+  // field level, leaving every other field (including stepAnswers) untouched.
   await saveLessonProgress(uid, {
     lessonId,
     currentStepIndex: stepIndex,
-    completed: existing?.completed ?? false,
-    stepAnswers: existing?.stepAnswers ?? {},
-    masteryScore: existing?.masteryScore ?? 0,
-    conceptMastery: existing?.conceptMastery ?? {},
   })
 }
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Lesson } from '../../content/types'
 import { getNextLesson } from '../../content/course'
-import { loadOrCreateSeed, refreshSeed, resolveLesson } from '../../content/randomize'
+import { loadOrCreateSeed, refreshSeed, resolveLesson, storeSeed } from '../../content/randomize'
 import { SegmentedProgress } from '../../components/SegmentedProgress'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
@@ -43,6 +43,10 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   // Randomized numbers are fixed per play-through by a seed (persisted so reloads
   // and the review screen stay consistent); restarting reshuffles via a new seed.
   const [seed, setSeed] = useState(() => loadOrCreateSeed(rawLesson.id))
+  // Mirror the live seed in a ref so the one-shot load effect can read the
+  // current seed without listing it as a dependency (which would re-fetch).
+  const seedRef = useRef(seed)
+  seedRef.current = seed
   const lesson = useMemo(() => resolveLesson(rawLesson, seed), [rawLesson, seed])
   const [stepIndex, setStepIndex] = useState(0)
   const [furthestIndex, setFurthestIndex] = useState(0)
@@ -87,6 +91,16 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
     if (!user) return
     getLessonProgress(user.uid, lesson.id).then((progress) => {
       if (progress) {
+        // Reproduce the exact play-through this progress was recorded against.
+        // If the doc carries a seed, adopt it (so a different device shows the
+        // same numbers); otherwise backfill the local seed for older docs.
+        if (typeof progress.seed === 'number' && progress.seed >>> 0 !== seedRef.current) {
+          storeSeed(lesson.id, progress.seed)
+          setSeed(progress.seed >>> 0)
+        } else if (progress.seed === undefined) {
+          saveLessonProgress(user.uid, { lessonId: lesson.id, seed: seedRef.current })
+        }
+
         const startIndex = progress.completed ? 0 : progress.currentStepIndex
         setStepIndex(startIndex)
         setFurthestIndex(progress.currentStepIndex)
@@ -129,6 +143,7 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
           stepAnswers: {},
           masteryScore: 0,
           conceptMastery: {},
+          seed: seedRef.current,
         })
       }
       setLoading(false)
@@ -304,8 +319,9 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   }
 
   const handleRestart = async () => {
-    if (user) await restartLesson(user.uid, lesson.id)
-    setSeed(refreshSeed(rawLesson.id))
+    const newSeed = refreshSeed(rawLesson.id)
+    if (user) await restartLesson(user.uid, lesson.id, newSeed)
+    setSeed(newSeed)
     setStepStates({})
     setStarredSteps([])
     setProgressDoc((prev) =>

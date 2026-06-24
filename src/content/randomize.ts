@@ -52,6 +52,18 @@ export function loadOrCreateSeed(lessonId: string): number {
   }
 }
 
+/**
+ * Caches a known seed (e.g. one restored from Firestore) into localStorage so a
+ * same-browser reload stays consistent without re-reading the server.
+ */
+export function storeSeed(lessonId: string, seed: number): void {
+  try {
+    window.localStorage.setItem(SEED_PREFIX + lessonId, String(seed >>> 0))
+  } catch {
+    /* localStorage unavailable — in-memory seed still drives this session */
+  }
+}
+
 /** Generates and persists a brand-new seed for a lesson (used on restart). */
 export function refreshSeed(lessonId: string): number {
   const seed = makeSeed()

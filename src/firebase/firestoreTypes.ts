@@ -25,6 +25,12 @@ export interface StepAnswerRecord {
 export interface LessonProgressDoc {
   lessonId: string
   currentStepIndex: number
+  /**
+   * The randomization seed this play-through was generated with. Persisted so a
+   * learner who resumes on another device/browser sees the SAME numbers they
+   * answered (localStorage alone can't survive a device switch or cleared cache).
+   */
+  seed?: number
   completed: boolean
   completedAt?: Timestamp
   startedAt: Timestamp

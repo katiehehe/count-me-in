@@ -162,7 +162,13 @@
 
 ## Stabilization Log
 
-### Round 1 — top 3 risks (in progress)
-- [ ] #1 Non-atomic `advanceStep` write race
-- [ ] #2 Randomization seed only in localStorage (cross-device/session resume)
-- [ ] #3 Dice lesson text/UI mismatch (editable faces)
+### Round 1 — top 3 risks (DONE, branch `mvp-stabilization`)
+- [x] **#1 Non-atomic `advanceStep` write race** — `advanceStep` now writes only `currentStepIndex`; `updateDoc` field-merge can no longer clobber a concurrently committed answer. Guarded by `progressService.test.ts`.
+- [x] **#2 Randomization seed only in localStorage** — seed is now persisted in the Firestore `LessonProgressDoc` (`seed`), adopted on resume, backfilled for old docs, and re-persisted on restart. Guarded by `progressService.test.ts` + `randomize.test.ts` (determinism).
+- [x] **#3 Dice lesson text/UI mismatch** — removed the "change the face values" promise and the dead `editable: true` flag from `sim-dice`. Guarded by `content.test.ts`.
+
+Verification after round 1: `npx vitest run` → 29 passed / 4 files · `npm run build` → clean (same pre-existing 1.04 MB chunk warning) · `npm run lint` → 3 pre-existing `only-export-components` warnings only.
+
+**Independent re-audit verdict: GO to freeze.** All three fixes confirmed PASS with no regressions across auth, lesson start/completion, feedback, resume, course path/mastery, and mobile. Documented caveat: docs created *before* this change have no recoverable original seed, so the backfill writes the current device's local seed (only affects legacy in-flight play-throughs; new play-throughs are fully reproducible cross-device).
+
+**Deferred (intentionally NOT changed this round):** #4 interactive-step persistence, #5 ArrangementBoard touch drag, #6 `?dev=1` prod backdoor, #7 substring restore heuristic, #8 bundle splitting, #9 streak-on-open, #10 offline/`getRedirectResult`.
