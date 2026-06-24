@@ -2,7 +2,8 @@ import { initializeApp, type FirebaseApp } from 'firebase/app'
 import { getAuth, type Auth } from 'firebase/auth'
 import {
   initializeFirestore,
-  memoryLocalCache,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   type Firestore,
 } from 'firebase/firestore'
 
@@ -49,7 +50,15 @@ export function getFirestoreDb(): Firestore {
     // uses plain HTTP requests that work reliably everywhere.
     db = initializeFirestore(getFirebaseApp(), {
       experimentalForceLongPolling: true,
-      localCache: memoryLocalCache(),
+      // IndexedDB-backed cache: buffers reads and, crucially, queues writes made
+      // while offline (or during a network blip) and flushes them automatically
+      // on reconnect, so a learner's answers aren't silently lost. The multi-tab
+      // manager keeps state consistent across tabs. If the browser can't provide
+      // persistence (private mode / unsupported), Firestore degrades to
+      // online-only on its own without throwing.
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
     })
   }
   return db

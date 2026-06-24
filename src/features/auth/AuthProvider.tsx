@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  getRedirectResult,
   onAuthStateChanged,
   signInAnonymously,
   signInWithPopup,
@@ -25,6 +26,7 @@ interface AuthContextValue {
   profile: UserProfile | null
   loading: boolean
   firebaseConfigured: boolean
+  authError: string | null
   signInWithGoogle: () => Promise<void>
   signInAnonymously: () => Promise<void>
   signOut: () => Promise<void>
@@ -38,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
   const firebaseConfigured = isFirebaseConfigured()
 
   useEffect(() => {
@@ -47,6 +50,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const auth = getFirebaseAuth()
+
+    // Complete any pending redirect sign-in. On the redirect path the error lands
+    // here after a full page reload — long after the click handler's try/catch is
+    // gone — so without this the failure would be silently swallowed and the user
+    // would just be bounced back to the login screen with no explanation.
+    getRedirectResult(auth).catch((err) => {
+      console.error('Google redirect sign-in failed:', err)
+      setAuthError('Google sign-in failed. Try again or use demo mode.')
+    })
+
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser)
       // Never block the UI on Firestore. As soon as auth state is known the app
@@ -56,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
 
       if (firebaseUser) {
+        setAuthError(null)
         ensureUserProfile(
           firebaseUser.uid,
           firebaseUser.displayName || 'Learner',
@@ -126,13 +140,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       loading,
       firebaseConfigured,
+      authError,
       signInWithGoogle,
       signInAnonymously: signInAnonymouslyFn,
       signOut,
       setDisplayName,
       refreshProfile,
     }),
-    [user, profile, loading, firebaseConfigured, signInWithGoogle, signInAnonymouslyFn, signOut, setDisplayName, refreshProfile],
+    [user, profile, loading, firebaseConfigured, authError, signInWithGoogle, signInAnonymouslyFn, signOut, setDisplayName, refreshProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

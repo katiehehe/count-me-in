@@ -5,7 +5,8 @@ import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 
 export function LoginPage() {
-  const { user, loading, firebaseConfigured, signInWithGoogle, signInAnonymously } = useAuth()
+  const { user, loading, firebaseConfigured, authError, signInWithGoogle, signInAnonymously } =
+    useAuth()
   const location = useLocation()
   const [error, setError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
@@ -78,7 +79,9 @@ export function LoginPage() {
         >
           Try demo (anonymous)
         </Button>
-        {error && <p className="text-center text-sm text-error-700">{error}</p>}
+        {(error || authError) && (
+          <p className="text-center text-sm text-error-700">{error || authError}</p>
+        )}
       </Card>
 
       <p className="mt-6 text-center text-sm text-slate-500">
