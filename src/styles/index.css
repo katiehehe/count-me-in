@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+@theme {
+  /* Primary — deep navy blue */
+  --color-brand-50: #eef3f9;
+  --color-brand-100: #d8e3f0;
+  --color-brand-200: #b3c7e0;
+  --color-brand-300: #84a3cb;
+  --color-brand-400: #4f78b0;
+  --color-brand-500: #2d5894;
+  --color-brand-600: #1e3f6f;
+  --color-brand-700: #1b3358;
+  --color-brand-800: #172747;
+  --color-brand-900: #111d35;
+
+  /* Accent — bright sky blue (for hints / secondary highlights) */
+  --color-accent-50: #eff8ff;
+  --color-accent-100: #d8eeff;
+  --color-accent-200: #b3ddff;
+  --color-accent-300: #7cc4fb;
+  --color-accent-400: #3ba6f4;
+  --color-accent-500: #1488e0;
+  --color-accent-600: #0d6dbc;
+  --color-accent-700: #0f5694;
+
+  /* Mint — pastel green */
+  --color-mint-50: #ecfdf5;
+  --color-mint-100: #d1fae5;
+  --color-mint-200: #a7f3d0;
+  --color-mint-400: #34d399;
+  --color-mint-500: #10b981;
+
+  /* Butter — pastel yellow */
+  --color-butter-100: #fef6d6;
+  --color-butter-200: #fdecae;
+  --color-butter-400: #f6cf5b;
+  --color-butter-500: #eeb83a;
+
+  /* Feedback */
+  --color-success-50: #ecfdf5;
+  --color-success-100: #d1fae5;
+  --color-success-500: #10b981;
+  --color-success-600: #059669;
+  --color-success-700: #047857;
+  --color-error-50: #fef2f2;
+  --color-error-100: #fee2e2;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
+
+  /* Warm — amber, used for streaks & in-progress */
+  --color-warm-400: #fbbf24;
+  --color-warm-500: #f59e0b;
+  --color-warm-600: #d97706;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply text-slate-800 font-sans min-h-screen;
+    background:
+      radial-gradient(48rem 48rem at 100% -8%, #d8e3f0 0%, transparent 52%),
+      radial-gradient(42rem 42rem at -8% 4%, #e2eefb 0%, transparent 48%),
+      radial-gradient(38rem 38rem at 50% 120%, #eef3f9 0%, transparent 60%),
+      linear-gradient(180deg, #f8fafd 0%, #eef3f9 100%);
+    background-attachment: fixed;
+  }
+
+  /* Remove number-input spinner arrows across browsers */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  /* Decision-tree branch reveal animation (CombinationTree). */
+  @keyframes branch-in {
+    0% {
+      opacity: 0;
+      transform: translateX(-14px) scale(0.8);
+    }
+    70% {
+      opacity: 1;
+      transform: translateX(1px) scale(1.04);
+    }
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .branch-in {
+    animation: branch-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Decision-tree bracket connectors (CombinationTree). A horizontal stub
+     leaves the parent, a vertical bar spans the children, and a horizontal
+     stub enters each child — forming clean elbow/bracket links. */
+  .combo-tree {
+    --tree-stub: 1.125rem;
+    --tree-line: var(--color-brand-200);
+  }
+
+  @media (min-width: 640px) {
+    .combo-tree {
+      --tree-stub: 1.5rem;
+    }
+  }
+
+  .tree-branch {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: var(--tree-stub);
+    list-style: none;
+  }
+
+  .tree-branch::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    width: var(--tree-stub);
+    height: 2px;
+    background: var(--tree-line);
+    transform: translateY(-50%);
+  }
+
+  .tree-leaf {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding-block: 0.4rem;
+    padding-left: var(--tree-stub);
+  }
+
+  .tree-leaf::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: var(--tree-stub);
+    height: 2px;
+    background: var(--tree-line);
+    transform: translateY(-50%);
+  }
+
+  .tree-leaf::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2px;
+    background: var(--tree-line);
+  }
+
+  .tree-leaf:first-child::after {
+    top: 50%;
+  }
+
+  .tree-leaf:last-child::after {
+    bottom: 50%;
+  }
+
+  .tree-leaf:only-child::after {
+    display: none;
+  }
+
+  @keyframes connector-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .tree-branch::before,
+  .tree-leaf::before,
+  .tree-leaf::after {
+    animation: connector-fade 0.45s ease both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .branch-in,
+    .tree-branch::before,
+    .tree-leaf::before,
+    .tree-leaf::after {
+      animation: none;
+    }
+    .animate-pulse,
+    .animate-ping {
+      animation: none;
+    }
+  }
+}
