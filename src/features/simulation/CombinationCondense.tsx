@@ -56,21 +56,26 @@ export function CombinationCondense({
 
   const containerRef = useRef<HTMLDivElement | null>(null)
   const targetRef = useRef<HTMLDivElement | null>(null)
+  const leftColRef = useRef<HTMLDivElement | null>(null)
   const rowRefs = useRef<(HTMLDivElement | null)[]>([])
 
   const recompute = useCallback(() => {
     const c = containerRef.current
     const t = targetRef.current
-    if (!c || !t) return
+    const col = leftColRef.current
+    if (!c || !t || !col) return
     const cRect = c.getBoundingClientRect()
     const tRect = t.getBoundingClientRect()
+    const colRect = col.getBoundingClientRect()
     const x2 = tRect.left - cRect.left
     const y2 = tRect.top - cRect.top + tRect.height / 2
+    // Start every arrow from the same vertical line at the right edge of the
+    // left column so they don't stagger with each row's varying width.
+    const x1 = colRect.right - cRect.left + 4
     const next: ArrowLine[] = []
     for (const row of rowRefs.current) {
       if (!row) continue
       const r = row.getBoundingClientRect()
-      const x1 = r.right - cRect.left + 4
       const y1 = r.top - cRect.top + r.height / 2
       next.push({ x1, y1, x2: x2 - 2, y2, len: Math.hypot(x2 - x1, y2 - y1) })
     }
@@ -149,7 +154,7 @@ export function CombinationCondense({
         </svg>
 
         <div className="relative flex items-center gap-3 sm:gap-8">
-          <div className="flex-1 space-y-2">
+          <div ref={leftColRef} className="flex-1 space-y-2">
             {perms.map((perm, i) => (
               <div
                 key={i}

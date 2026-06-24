@@ -188,7 +188,7 @@ export function ConnectionBoard({
     refArr: React.MutableRefObject<Array<HTMLButtonElement | null>>,
     isItemConnected: (i: number) => boolean,
   ) => (
-    <div className="flex flex-col justify-center gap-3">
+    <div className="flex h-full flex-col justify-center gap-3">
       {items.map((item, i) => {
         const isSelected = selected?.side === side && selected.index === i
         const connected = isItemConnected(i)
