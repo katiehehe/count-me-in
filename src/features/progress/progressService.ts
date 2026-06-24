@@ -287,7 +287,13 @@ async function recordDailyActivity(
   })
 }
 
-export async function touchActivity(uid: string) {
-  await recordDailyActivity(uid, {})
+/**
+ * Records a genuine learning event (the learner answered a question) toward the
+ * daily activity counters and streak. Call this on a real interaction, never on
+ * merely opening a lesson — opening shouldn't inflate a "did work today" signal.
+ * `updateUserStreak` is idempotent per day, so calling this on each answer is safe.
+ */
+export async function recordLearningActivity(uid: string, correct: boolean) {
+  await recordDailyActivity(uid, { answered: true, correct })
   await updateUserStreak(uid)
 }

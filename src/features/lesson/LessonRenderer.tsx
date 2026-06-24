@@ -15,10 +15,10 @@ import {
   completeLesson,
   getLessonProgress,
   recordStepAnswer,
+  recordLearningActivity,
   restartLesson,
   saveLessonProgress,
   toggleStepStar,
-  touchActivity,
 } from '../progress/progressService'
 import {
   calculateConceptMastery,
@@ -147,9 +147,8 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
         })
       }
       setLoading(false)
-      touchActivity(user.uid).then(() => refreshProfile())
     })
-  }, [user, lesson.id, refreshProfile])
+  }, [user, lesson.id])
 
   const updateStepState = useCallback((stepId: string, update: Partial<StepState>) => {
     setStepStates((prev) => ({
@@ -168,13 +167,24 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
     if (writes.length) await Promise.allSettled(writes)
   }, [])
 
+  // Streak/daily activity is credited on the first real answer this session, not
+  // on merely opening the lesson — so the streak reflects actual work done.
+  const activityRecordedRef = useRef(false)
+
   const persistAnswer = useCallback(
     (stepId: string, answer: string | number, correct: boolean, tags: string[] = []) => {
       if (!user) return
-      const write = recordStepAnswer(user.uid, lesson.id, stepId, answer, correct, tags)
-      pendingWrites.current.push(write)
+      pendingWrites.current.push(
+        recordStepAnswer(user.uid, lesson.id, stepId, answer, correct, tags),
+      )
+      if (!activityRecordedRef.current) {
+        activityRecordedRef.current = true
+        pendingWrites.current.push(
+          recordLearningActivity(user.uid, correct).then(() => refreshProfile()),
+        )
+      }
     },
-    [user, lesson.id],
+    [user, lesson.id, refreshProfile],
   )
 
   const handleToggleStar = useCallback(

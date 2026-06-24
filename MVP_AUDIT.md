@@ -171,4 +171,13 @@ Verification after round 1: `npx vitest run` → 29 passed / 4 files · `npm run
 
 **Independent re-audit verdict: GO to freeze.** All three fixes confirmed PASS with no regressions across auth, lesson start/completion, feedback, resume, course path/mastery, and mobile. Documented caveat: docs created *before* this change have no recoverable original seed, so the backfill writes the current device's local seed (only affects legacy in-flight play-throughs; new play-throughs are fully reproducible cross-device).
 
-**Deferred (intentionally NOT changed this round):** #4 interactive-step persistence, #5 ArrangementBoard touch drag, #6 `?dev=1` prod backdoor, #7 substring restore heuristic, #8 bundle splitting, #9 streak-on-open, #10 offline/`getRedirectResult`.
+**Deferred after round 1:** #4 interactive-step persistence, #5 ArrangementBoard touch drag, #6 `?dev=1` prod backdoor, #7 substring restore heuristic, #8 bundle splitting, #9 streak-on-open, #10 offline/`getRedirectResult`.
+
+### Round 2 — polish Batch A (DONE, branch `polish-batch-a`)
+- [x] **#6 `?dev=1` production backdoor** — `isDevUnlock()` now hard-returns `false` outside `import.meta.env.DEV`; the URL/localStorage unlock is dev-only (`?dev=0` simulates prod gating locally). Guarded by `devMode.test.ts`.
+- [x] **#9 streak inflates on lesson open** — removed the on-open `touchActivity`; streak/daily activity is now credited on the **first answered question** of a session via `recordLearningActivity` (idempotent per day).
+- [x] **P3 lint warnings** — cleared all 3 `only-export-components` warnings (targeted directives on the colocated `useAuth` / `useAuthGuard` / `canAdvance` non-component exports).
+
+Verification after Batch A: `npx vitest run` → 31 passed / 5 files · `npm run build` → clean · `npm run lint` → **0 warnings**.
+
+**Still deferred:** #4 interactive-step persistence, #5 ArrangementBoard touch drag, #7 substring restore heuristic, #8 bundle splitting, #10 offline/`getRedirectResult`.

@@ -2,6 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthProvider'
 
+// Intentionally colocated with the route components below; this is a hook, not a
+// component, so React Fast Refresh's only-export-components rule doesn't apply.
+// eslint-disable-next-line react/only-export-components
 export function useAuthGuard() {
   const { user, loading, firebaseConfigured } = useAuth()
   const location = useLocation()

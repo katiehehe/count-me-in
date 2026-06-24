@@ -317,6 +317,9 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
   }
 }
 
+// Pure helper colocated with the renderer it pairs with; not a component, so
+// React Fast Refresh's only-export-components rule doesn't apply.
+// eslint-disable-next-line react/only-export-components
 export function canAdvance(step: LessonStep, stepState: StepState): boolean {
   switch (step.type) {
     case 'intro':
