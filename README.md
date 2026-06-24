@@ -2,11 +2,15 @@
 
 **Subject:** Contest counting and probability — permutations, combinations, and probability intuition for competitions.
 
+**Who it's for:** middle/high-school students prepping for math contests (and the contest-curious) who learn best by *doing*, not by watching.
+
 Count Me In is a Brilliant-style learn-by-doing app. Learners discover math through interactive puzzles, visual manipulation, and instant feedback — not passive videos or multiple-choice drills.
 
 ## Deployed link
 
 **Live:** [https://count-me-in-2cdc6.web.app](https://count-me-in-2cdc6.web.app) (Firebase Hosting)
+
+Deploy a fresh build with `npm run build && npx firebase-tools@latest deploy --only hosting`.
 
 ## Quick start
 
@@ -65,33 +69,49 @@ src/
 │   ├── course/       # Course path, lesson locking
 │   ├── lesson/       # Lesson engine + step renderers
 │   ├── progress/     # Firestore persistence, streaks, mastery
-│   └── simulation/   # Arrangement board, factorial discovery, math
+│   └── simulation/   # Interactive manipulatives + permutation math
 ├── firebase/         # Client init + types
-└── pages/            # Landing, profile
+└── pages/            # Landing page
 ```
 
 ### Content model
 
-Lessons are defined as typed data in `src/content/`. Each lesson has steps with a `type` field (`intro`, `arrangement`, `connection`, `tree`, `multiple-choice`, `numeric-question`, `factorial-discovery`, `completion`). The `StepRenderer` dispatches to the correct interactive component — add new lessons by adding data, not rewriting the player. Mastery is scored across the whole lesson: the fraction of graded questions (`multiple-choice` + `numeric-question`) answered correctly on the first attempt maps to a red / yellow / green tier.
+Lessons are defined as typed data in `src/content/`. Each lesson has steps with a `type` field — one of `intro`, `multiple-choice`, `numeric-question`, `arrangement`, `connection`, `tree`, `simulation`, `factorial-discovery`, `probability`, `outcome-select`, `condensing`, `combined-experiment`, `dependence-pairing`, `completion`. The `StepRenderer` dispatches to the correct interactive component — **add new lessons by adding data, not by rewriting the player.** Randomized steps use a per-play-through seed (persisted in Firestore) so a learner sees the same numbers on every device. Mastery is scored across the whole lesson: the fraction of graded questions (`multiple-choice` + `numeric-question`) answered correctly on the first attempt maps to a red / yellow / green tier.
 
 ### Lesson engine
 
-- **LessonRenderer** — progress bar, step navigation, Firestore autosave
+- **LessonRenderer** — progress bar, step navigation, seeded randomization, Firestore autosave + resume
 - **StepRenderer** — type-based dispatch to step components
-- **ArrangementBoard** — drag/tap to swap distinct objects, tracks unique orderings
+- **ArrangementBoard / OrderingsList** — drag/tap to reorder distinct objects, tracking unique orderings
+- **ConnectionBoard** — pointer/touch line-drawing to match outcomes
+- **CombinationTree** — branch-by-branch tree of a multi-stage choice
 - **FactorialDiscovery** — tap-to-reveal counting principle, introduces n! naturally
+- **DiceSimulation / CombinedExperiment** — run thousands of trials and watch the distribution form
+- **ProbabilityGamble** — slider that tunes odds against a live area-model visual
 
-## Phase 1 (shipped)
+## The course (7 complete lessons)
 
-- Firebase Auth (Google + anonymous demo)
-- Course path with sequential lesson locking
-- Lesson 1: **Arranging Distinct Objects** (permutations + factorials)
-- Draggable arrangement interaction
-- Instant feedback with misconception-specific messages
-- Progress persistence (step index, answers, attempts)
-- Streaks and mastery tracking
-- Mobile-responsive UI
-- No AI features
+A sequential path; each lesson unlocks the next once it's mastered.
+
+1. **The Counting Principle** — multiply choices across stages
+2. **Arranging Distinct Objects** — permutations and factorials
+3. **Arranging Identical Objects** — dividing out repeats
+4. **Combinations vs Permutations** — when order does (and doesn't) matter
+5. **Independent Events** — the multiply rule for probability
+6. **Probability & Distributions** — simulate trials, watch patterns emerge
+7. **Expected Value** — turn payouts into a single number
+
+## What's shipped
+
+- Firebase Auth (Google + anonymous demo) with display-name capture
+- Course path with sequential unlocking + mastery tiers + "recommended next"
+- 7 complete interactive lessons (drag, tap, connect, slider, simulate, reorder)
+- Interactive visuals that respond to input (SVG connections, area model, live charts)
+- Instant, misconception-specific feedback (including per-wrong-choice messages)
+- Progress persistence that survives reload **and device switches** (step index, answers, attempts, randomization seed)
+- Streaks, daily activity, and milestone tracking
+- Mobile-responsive UI with touch support
+- Works fully without any AI features
 
 ## Phase 2 (not implemented)
 
@@ -111,15 +131,31 @@ Set `VITE_AI_ENABLED=false` to keep AI off.
 | Command | Description |
 |---|---|
 | `npm run dev` | Start dev server |
-| `npm run build` | Production build |
-| `npm test` | Run unit tests |
+| `npm run build` | Production build (typecheck + Vite) |
+| `npm test` | Run unit tests (Vitest) |
+| `npm run lint` | Lint (oxlint) |
 | `npm run preview` | Preview production build |
+
+## Testing
+
+Unit + regression tests run with Vitest (`npm test`). Coverage focuses on the
+logic most likely to break silently:
+
+- `permutationMath.test.ts` — counting/probability math, mastery tiers, streaks
+- `randomize.test.ts` — seeded randomization determinism + grading-safe answers
+- `progressService.test.ts` — Firestore persistence: step-pointer/answer write
+  ordering (race regression), seed round-trip, first-attempt locking
+- `content.test.ts` — lesson copy never promises an interaction the UI lacks
+
+See `MVP_AUDIT.md` for the full QA audit and stabilization log.
 
 ## Known limitations
 
-- Lessons 2–4 are visible on the course path but locked (no steps yet)
-- Deployment requires your own Firebase project and Vercel account
-- Anonymous auth users should set a display name on first visit
+- Deployment requires your own Firebase project (Auth + Firestore + Hosting)
+- Anonymous auth users are prompted to set a display name on first visit
+- A lesson started on one device *before* seed-persistence shipped may show
+  different numbers on a second device until it's restarted (legacy docs only)
+- Single JS bundle (~1 MB) — code-splitting is a known future optimization
 
 ## License
 
