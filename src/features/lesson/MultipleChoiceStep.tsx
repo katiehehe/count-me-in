@@ -50,14 +50,18 @@ export function MultipleChoiceStep({
   const getFeedbackMessage = () => {
     if (!showResult || selectedIndex === null || selectedIndex === undefined) return ''
     if (isCorrect) return question.explanation || feedback?.correct || ''
+    // On a wrong pick, show the misconception nudge for that specific choice if we
+    // have one (it explains why the option is wrong WITHOUT revealing the answer).
+    // Otherwise just prompt a retry — never fall back to the answer-revealing
+    // explanation, so the solution isn't spoiled before they want it.
     const choice = question.choices?.[selectedIndex]
     if (choice && feedback?.choiceFeedback?.[choice]) return feedback.choiceFeedback[choice]
-    return feedback?.incorrect ?? question.explanation
+    return 'Not quite — give it another try. Stuck? Use the hint below.'
   }
 
   return (
     <div>
-      {prompt && <p className="mb-4 text-lg font-medium text-slate-800">{prompt}</p>}
+      {prompt && <p className="mb-4 text-base font-medium text-slate-800 sm:text-lg">{prompt}</p>}
       <div className="space-y-2.5">
         {question.choices?.map((choice, i) => {
           let style = 'border-brand-100 bg-white hover:border-brand-300 hover:bg-brand-50'
@@ -74,7 +78,7 @@ export function MultipleChoiceStep({
               key={choice}
               onClick={() => handleSelect(i)}
               disabled={disabled || locked}
-              className={`flex w-full items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left font-medium transition-colors ${style}`}
+              className={`flex w-full items-center gap-3 rounded-2xl border-2 px-3.5 py-3 text-left text-sm font-medium transition-colors sm:px-4 sm:text-base ${style}`}
             >
               <span
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${

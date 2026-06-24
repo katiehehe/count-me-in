@@ -16,10 +16,12 @@ export function Layout() {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-accent-400 text-sm font-bold text-white shadow-sm shadow-brand-200">
-                #
-              </span>
-              <span className="text-lg font-bold text-slate-900">Count Me In</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-accent-400 font-serif text-sm font-semibold text-white shadow-sm shadow-brand-200">
+              #
+            </span>
+            <span className="font-serif text-lg font-semibold tracking-tight text-slate-900">
+              Count Me In
+            </span>
             </Link>
             {user && firstName && (
               <span className="hidden max-w-[10rem] truncate border-l border-slate-200 pl-3 text-sm font-semibold text-brand-600 sm:inline">

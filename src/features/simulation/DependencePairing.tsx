@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DependenceCard } from '../../content/types'
+import { EventIcon } from '../../components/icons/EventIcon'
+import { hasEventIcon } from '../../components/icons/tokenIconUtils'
 
 interface DependencePairingProps {
   cards: DependenceCard[]
@@ -8,6 +10,10 @@ interface DependencePairingProps {
 }
 
 const key = (a: string, b: string) => [a, b].sort().join('|')
+
+// Distinct colors so each matched pair reads as its own group. Cards in the same
+// pair share one color instead of being removed from the board.
+const PAIR_COLORS = ['#2d9d78', '#d97706', '#7c3aed', '#2d5894', '#db2777']
 
 export function DependencePairing({ cards, dependentPairs, onComplete }: DependencePairingProps) {
   const [pairs, setPairs] = useState<[string, string][]>([])
@@ -60,29 +66,53 @@ export function DependencePairing({ cards, dependentPairs, onComplete }: Depende
     }
   }
 
-  const unpaired = cards.filter((c) => !pairedIds.has(c.id))
+  const pairIndexOf = (id: string) => pairs.findIndex(([a, b]) => a === id || b === id)
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-center gap-2.5">
-        {unpaired.map((card) => {
+        {cards.map((card) => {
           const isSel = selected === card.id
+          const pi = pairIndexOf(card.id)
+          const paired = pi !== -1
+          const color = paired ? PAIR_COLORS[pi % PAIR_COLORS.length] : null
           return (
             <button
               key={card.id}
               type="button"
               onClick={() => tapCard(card.id)}
-              className={`flex h-20 w-36 flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 text-center transition-all ${
-                isSel
-                  ? 'border-brand-500 bg-brand-50 ring-4 ring-brand-100'
-                  : 'border-slate-200 bg-white hover:border-brand-300'
+              aria-label={paired ? `${card.label} — matched, tap to unpair` : card.label}
+              className={`relative flex h-20 w-36 flex-col items-center justify-center gap-1 rounded-2xl border-2 px-2 text-center transition-all ${
+                paired
+                  ? 'shadow-sm'
+                  : isSel
+                    ? 'border-brand-500 bg-brand-50 ring-4 ring-brand-100'
+                    : 'border-slate-200 bg-white hover:border-brand-300'
               }`}
+              style={color ? { backgroundColor: `${color}1f`, borderColor: color } : undefined}
             >
-              {card.emoji && (
-                <span className="text-xl leading-none" aria-hidden>
-                  {card.emoji}
+              {paired && (
+                <span
+                  className="absolute right-1.5 top-1.5 text-xs leading-none"
+                  style={{ color: color ?? undefined }}
+                  aria-hidden
+                >
+                  🔗
                 </span>
               )}
+              {card.emoji &&
+                (hasEventIcon(card.emoji) ? (
+                  <EventIcon
+                    emoji={card.emoji}
+                    label={card.label}
+                    color={card.color}
+                    className="h-7 w-7"
+                  />
+                ) : (
+                  <span className="text-xl leading-none" aria-hidden>
+                    {card.emoji}
+                  </span>
+                ))}
               <span className="line-clamp-2 text-xs font-semibold leading-tight text-slate-700">
                 {card.label}
               </span>
@@ -98,39 +128,9 @@ export function DependencePairing({ cards, dependentPairs, onComplete }: Depende
       )}
 
       {pairs.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-center text-xs font-bold uppercase tracking-wide text-slate-400">
-            Dependent pairs — one affects the other
-          </p>
-          {pairs.map(([a, b]) => {
-            const ca = cardById(a)
-            const cb = cardById(b)
-            return (
-              <div
-                key={key(a, b)}
-                className="flex items-center justify-center gap-2 rounded-2xl border-2 border-success-200 bg-success-50 px-3 py-2"
-              >
-                <span className="flex-1 text-right text-sm font-semibold text-slate-700">
-                  {ca?.emoji} {ca?.label}
-                </span>
-                <span className="shrink-0 text-xs font-bold text-success-600" aria-hidden>
-                  ↔ affects
-                </span>
-                <span className="flex-1 text-left text-sm font-semibold text-slate-700">
-                  {cb?.emoji} {cb?.label}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => unpair(a)}
-                  aria-label="Unpair these events"
-                  className="shrink-0 rounded-full px-2 py-0.5 text-slate-400 hover:bg-white hover:text-slate-600"
-                >
-                  ✕
-                </button>
-              </div>
-            )
-          })}
-        </div>
+        <p className="text-center text-xs font-medium text-slate-500">
+          Matched events share a color. Tap a colored card to unpair it.
+        </p>
       )}
     </div>
   )

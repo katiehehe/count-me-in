@@ -53,7 +53,37 @@
   --color-warm-500: #f59e0b;
   --color-warm-600: #d97706;
 
+  /* ---- Pastel accent blocks for the soft "bento" learning dashboard ---- */
+  /* Lavender — Counting Foundations */
+  --color-lavender-50: #f6f4ff;
+  --color-lavender-100: #ece8fe;
+  --color-lavender-200: #ddd6fe;
+  --color-lavender-300: #c4b5fd;
+  --color-lavender-400: #a78bfa;
+  --color-lavender-500: #8b5cf6;
+  --color-lavender-600: #7c3aed;
+
+  /* Blush — Challenge Arena */
+  --color-blush-50: #fff1f4;
+  --color-blush-100: #ffe4ea;
+  --color-blush-200: #fecdd8;
+  --color-blush-300: #fda4b8;
+  --color-blush-400: #fb7195;
+  --color-blush-500: #f43f6e;
+  --color-blush-600: #e11d54;
+
+  /* Lime — Expectation & Random Variables */
+  --color-lime-50: #f7fee7;
+  --color-lime-100: #ecfccb;
+  --color-lime-200: #d9f99d;
+  --color-lime-300: #bef264;
+  --color-lime-400: #a3e635;
+  --color-lime-500: #84cc16;
+  --color-lime-600: #65a30d;
+
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  /* Editorial serif for headings — academic, mathematical, magazine-like. */
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
 }
 
 @layer base {
@@ -69,6 +99,38 @@
       radial-gradient(38rem 38rem at 50% 120%, #eef3f9 0%, transparent 60%),
       linear-gradient(180deg, #f8fafd 0%, #eef3f9 100%);
     background-attachment: fixed;
+  }
+
+  /* Subtle engineering/graph-paper grid for the "olympiad notebook" motif.
+     Used behind the curriculum header so panels read as paper, not SaaS cards. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(45, 88, 148, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(45, 88, 148, 0.06) 1px, transparent 1px);
+    background-size: 1.375rem 1.375rem;
+  }
+
+  /* Faint dotted "puzzle paper" motif for decorative pastel panels. */
+  .bg-dots {
+    background-image: radial-gradient(currentColor 1.1px, transparent 1.1px);
+    background-size: 1.1rem 1.1rem;
+  }
+
+  /* Soft, layered shadows for the tactile bento cards (no harsh outlines). */
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 8px 24px rgba(15, 23, 42, 0.06);
+  }
+  .shadow-tile {
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 4px 12px rgba(15, 23, 42, 0.05);
+  }
+  .shadow-tile-hover {
+    box-shadow:
+      0 2px 4px rgba(15, 23, 42, 0.06),
+      0 12px 28px rgba(15, 23, 42, 0.1);
   }
 
   /* Remove number-input spinner arrows across browsers */

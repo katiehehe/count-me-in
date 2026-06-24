@@ -1,27 +1,35 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatFactorial, factorial } from '../simulation/permutationMath'
 
 interface FactorialDiscoveryProps {
   itemLabel: string
   count: number
+  /**
+   * Number of slots to fill. Defaults to `count` (a full factorial). Set it
+   * smaller to build a partial product like nPr — e.g. count 5, slots 3 fills
+   * 5 × 4 × 3.
+   */
+  slots?: number
   onComplete?: () => void
 }
 
 /**
- * Interactive factorial builder. The learner types how many choices remain for
- * EACH slot (count, then count−1, … down to 1), one slot at a time, and watches
- * the running product build up to count!. Completes once every slot is filled
- * in correctly.
+ * Interactive product builder. The learner types how many choices remain for
+ * EACH slot (count, then count−1, …), one slot at a time, and watches the
+ * running product build up. With `slots === count` this is a full factorial; a
+ * smaller `slots` builds a partial product such as an ordered selection (nPr).
+ * Completes once every slot is filled in correctly.
  */
-export function FactorialDiscovery({ itemLabel, count, onComplete }: FactorialDiscoveryProps) {
-  const expected = Array.from({ length: count }, (_, i) => count - i)
-  const [inputs, setInputs] = useState<string[]>(() => Array(count).fill(''))
-  const [solved, setSolved] = useState<boolean[]>(() => Array(count).fill(false))
+export function FactorialDiscovery({ itemLabel, count, slots, onComplete }: FactorialDiscoveryProps) {
+  const slotCount = slots ?? count
+  const isFullFactorial = slotCount === count
+  const expected = Array.from({ length: slotCount }, (_, i) => count - i)
+  const [inputs, setInputs] = useState<string[]>(() => Array(slotCount).fill(''))
+  const [solved, setSolved] = useState<boolean[]>(() => Array(slotCount).fill(false))
   const completedRef = useRef(false)
 
   const activeSlot = solved.findIndex((s) => !s)
   const allSolved = activeSlot === -1
-  const product = factorial(count)
+  const product = expected.reduce((a, b) => a * b, 1)
 
   useEffect(() => {
     if (allSolved && !completedRef.current) {
@@ -119,10 +127,12 @@ export function FactorialDiscovery({ itemLabel, count, onComplete }: FactorialDi
       {allSolved ? (
         <div className="rounded-xl border-2 border-success-500/30 bg-success-50 px-4 py-4 text-center">
           <p className="text-lg font-bold text-success-700">
-            {count}! = {formatFactorial(count)} = {product}
+            {expected.join(' × ')} = {product}
           </p>
           <p className="mt-1 text-sm text-success-700">
-            We write {count}! ("{count} factorial") as shorthand for this product.
+            {isFullFactorial
+              ? `We write ${count}! ("${count} factorial") as shorthand for this product.`
+              : `That’s ${count}P${slotCount} = ${product} — an ordered selection where each pick leaves one fewer ${itemLabel}.`}
           </p>
         </div>
       ) : (

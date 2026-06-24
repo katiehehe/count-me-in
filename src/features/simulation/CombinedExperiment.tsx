@@ -1,5 +1,11 @@
 import { useRef, useState } from 'react'
+import { DieIcon } from '../../components/icons/DieIcon'
+import { CoinIcon } from '../../components/icons/CoinIcon'
+import { InteractionGuide } from './InteractionGuide'
 import { useReducedMotion } from './useReducedMotion'
+
+// Enough batches that the histogram fills in and the running average settles.
+const GIST_BATCHES = 25
 
 interface CombinedExperimentProps {
   trials?: number
@@ -11,7 +17,9 @@ interface CombinedExperimentProps {
 }
 
 const CHART_HEIGHT = 150
+const LINE_HEIGHT = 110
 const BINS = 15
+const TICK_COUNT = 4
 
 /**
  * Runs batches of combined die-roll + coin-flip trials, each counting how often
@@ -50,12 +58,15 @@ export function CombinedExperiment({
     const apply = () => {
       const next: number[] = []
       for (let i = 0; i < n; i++) next.push(runBatch())
-      setHistory((prev) => [...prev, ...next])
+      setHistory((prev) => {
+        const merged = [...prev, ...next]
+        if (merged.length >= GIST_BATCHES && !completedRef.current) {
+          completedRef.current = true
+          onComplete?.()
+        }
+        return merged
+      })
       setRunning(false)
-      if (!completedRef.current) {
-        completedRef.current = true
-        onComplete?.()
-      }
     }
     if (reducedMotion) {
       apply()
@@ -83,13 +94,42 @@ export function CombinedExperiment({
   }
   const maxBin = Math.max(1, ...bins)
   const expectedLeft = Math.min(100, Math.max(0, ((expected - start) / span) * 100))
+  // Frequency ticks (number of batches) for the histogram's left axis.
+  const freqTicks = Array.from({ length: TICK_COUNT + 1 }, (_, i) => Math.round((maxBin / TICK_COUNT) * i))
+
+  // Running average of every batch count so far — this is the line that visibly
+  // converges onto the expected value as more batches are run.
+  const cumAvgs: number[] = []
+  let acc = 0
+  for (let i = 0; i < history.length; i++) {
+    acc += history[i]
+    cumAvgs.push(acc / (i + 1))
+  }
+  const aMin = Math.min(expected, ...(cumAvgs.length ? cumAvgs : [expected]))
+  const aMax = Math.max(expected, ...(cumAvgs.length ? cumAvgs : [expected]))
+  const aPad = Math.max(1, (aMax - aMin) * 0.25)
+  const yLo = aMin - aPad
+  const yHi = aMax + aPad
+  const yForCount = (v: number) => LINE_HEIGHT - ((v - yLo) / (yHi - yLo)) * LINE_HEIGHT
+  const expectedY = yForCount(expected)
+  const countTicks = Array.from({ length: TICK_COUNT + 1 }, (_, i) =>
+    Math.round(yLo + ((yHi - yLo) * i) / TICK_COUNT),
+  )
+  const linePoints = cumAvgs
+    .map((v, i) => {
+      const x = cumAvgs.length <= 1 ? 0 : (i / (cumAvgs.length - 1)) * 100
+      return `${x},${yForCount(v)}`
+    })
+    .join(' ')
 
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border-2 border-brand-100 bg-brand-50/60 px-4 py-3 text-center">
-        <p className="text-sm font-semibold text-brand-700">
-          Each trial: roll a {dieFaces}-sided die <span aria-hidden>🎲</span> and flip a coin{' '}
-          <span aria-hidden>🪙</span>
+        <p className="flex flex-wrap items-center justify-center gap-1.5 text-sm font-semibold text-brand-700">
+          Each trial: roll a {dieFaces}-sided die
+          <DieIcon value={4} className="inline-block h-4 w-4 align-middle" />
+          and flip a coin
+          <CoinIcon side="heads" className="inline-block h-4 w-4 align-middle" />
         </p>
         <p className="mt-1 text-xs text-slate-500">
           Each batch = {trials.toLocaleString()} trials, counting how many are{' '}
@@ -103,7 +143,7 @@ export function CombinedExperiment({
           type="button"
           onClick={() => addRuns(1)}
           disabled={running}
-          className="rounded-2xl bg-brand-500 px-5 py-3 text-base font-bold text-white shadow-sm shadow-brand-200 transition-colors hover:bg-brand-600 disabled:opacity-60"
+          className="rounded-2xl bg-brand-500 px-4 py-2.5 text-sm font-bold sm:px-5 sm:py-3 sm:text-base text-white shadow-sm shadow-brand-200 transition-colors hover:bg-brand-600 disabled:opacity-60"
         >
           {running ? 'Running…' : `Run a batch (${trials.toLocaleString()})`}
         </button>
@@ -111,7 +151,7 @@ export function CombinedExperiment({
           type="button"
           onClick={() => addRuns(25)}
           disabled={running}
-          className="rounded-2xl border-2 border-brand-200 bg-white px-5 py-3 text-base font-bold text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-60"
+          className="rounded-2xl border-2 border-brand-200 bg-white px-4 py-2.5 text-sm font-bold sm:px-5 sm:py-3 sm:text-base text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-60"
         >
           Run 25 batches
         </button>
@@ -127,6 +167,16 @@ export function CombinedExperiment({
         )}
       </div>
 
+      <InteractionGuide
+        steps={[
+          { label: 'Run a batch', done: runs >= 1 },
+          {
+            label: `Run 25 batches to see them cluster (${Math.min(runs, GIST_BATCHES)}/${GIST_BATCHES})`,
+            done: runs >= GIST_BATCHES,
+          },
+        ]}
+      />
+
       {latest !== null && (
         <p className="text-center text-sm text-slate-600">
           Latest batch: <span className="font-bold text-brand-600">{latest}</span> trials were{' '}
@@ -139,31 +189,49 @@ export function CombinedExperiment({
           <p className="mb-3 text-center text-sm font-semibold text-slate-600">
             Count of “{targetFace} and {coinLabel}” across {runs} batch{runs !== 1 ? 'es' : ''}
           </p>
-          <div className="relative" style={{ height: CHART_HEIGHT }}>
-            <div className="absolute inset-0 flex items-end gap-px">
-              {bins.map((c, i) => (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t-sm bg-gradient-to-t from-brand-500 to-accent-400 transition-[height] duration-300"
-                  style={{ height: `${(c / maxBin) * 100}%` }}
-                  aria-label={`${start + i * binWidth}–${start + (i + 1) * binWidth - 1}: ${c} batches`}
-                />
+          <div className="flex">
+            <div className="relative mr-2 w-6 shrink-0" style={{ height: CHART_HEIGHT }} aria-hidden>
+              {freqTicks.map((t) => (
+                <span
+                  key={t}
+                  className="absolute right-0 -translate-y-1/2 text-[10px] font-medium text-slate-400"
+                  style={{ bottom: `${(t / maxBin) * 100}%` }}
+                >
+                  {t}
+                </span>
               ))}
             </div>
-            <div
-              className="absolute bottom-0 top-0 border-l-2 border-dashed border-warm-500"
-              style={{ left: `${expectedLeft}%` }}
-            >
-              <span className="absolute -top-1 -translate-x-1/2 whitespace-nowrap rounded bg-warm-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                expected {expected}
-              </span>
+            <div className="min-w-0 flex-1">
+              <div className="relative" style={{ height: CHART_HEIGHT }}>
+                <div className="absolute inset-0 flex items-end gap-px">
+                  {bins.map((c, i) => (
+                    <div
+                      key={i}
+                      className="flex-1 rounded-t-sm bg-gradient-to-t from-brand-500 to-accent-400 transition-[height] duration-300"
+                      style={{ height: `${(c / maxBin) * 100}%` }}
+                      aria-label={`${start + i * binWidth}–${start + (i + 1) * binWidth - 1}: ${c} batches`}
+                    />
+                  ))}
+                </div>
+                <div
+                  className="absolute bottom-0 top-0 border-l-2 border-dashed border-warm-500"
+                  style={{ left: `${expectedLeft}%` }}
+                >
+                  <span className="absolute -top-1 -translate-x-1/2 whitespace-nowrap rounded bg-warm-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    expected {expected}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-1 flex justify-between text-[10px] font-medium text-slate-400">
+                <span>{start}</span>
+                <span>count per batch →</span>
+                <span>{start + span}</span>
+              </div>
             </div>
           </div>
-          <div className="mt-1 flex justify-between text-[10px] font-medium text-slate-400">
-            <span>{start}</span>
-            <span>count per batch →</span>
-            <span>{start + span}</span>
-          </div>
+          <p className="mt-0.5 text-center text-[10px] font-medium text-slate-400">
+            ↑ number of batches
+          </p>
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-xl bg-slate-50 px-3 py-2">
               <div className="text-lg font-bold text-slate-700">{mean.toFixed(1)}</div>
@@ -181,6 +249,79 @@ export function CombinedExperiment({
             <span className="font-semibold text-brand-700">{expected}</span> — and the more batches
             you run, the closer the average gets.
           </p>
+
+          {runs > 1 && (
+            <div className="mt-4 border-t border-slate-100 pt-3">
+              <div className="mb-2 flex items-center justify-between text-[11px] font-medium text-slate-400">
+                <span>running average of the count →</span>
+                <span>{runs} batches</span>
+              </div>
+              <div className="flex">
+                <div className="relative mr-2 w-6 shrink-0" style={{ height: LINE_HEIGHT }} aria-hidden>
+                  {countTicks.map((t) => (
+                    <span
+                      key={t}
+                      className="absolute right-0 -translate-y-1/2 text-[10px] font-medium text-slate-400"
+                      style={{ top: yForCount(t) }}
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+                <div className="relative min-w-0 flex-1" style={{ height: LINE_HEIGHT }}>
+                  <svg
+                    className="absolute inset-0 h-full w-full overflow-visible"
+                    viewBox={`0 0 100 ${LINE_HEIGHT}`}
+                    preserveAspectRatio="none"
+                    aria-hidden
+                  >
+                    {countTicks.map((t) => (
+                      <line
+                        key={t}
+                        x1="0"
+                        y1={yForCount(t)}
+                        x2="100"
+                        y2={yForCount(t)}
+                        stroke="#e2e8f0"
+                        strokeWidth="1"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    ))}
+                    <line
+                      x1="0"
+                      y1={expectedY}
+                      x2="100"
+                      y2={expectedY}
+                      stroke="#b45309"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 3"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <polyline
+                      points={linePoints}
+                      fill="none"
+                      stroke="#2d5894"
+                      strokeWidth="2"
+                      vectorEffect="non-scaling-stroke"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span
+                    className="absolute right-1 -translate-y-1/2 rounded bg-warm-500 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                    style={{ top: expectedY }}
+                  >
+                    {expected}
+                  </span>
+                </div>
+              </div>
+              <p className="mt-2 text-center text-xs text-slate-500">
+                The running average settles onto{' '}
+                <span className="font-semibold text-brand-700">{expected}</span> — that&apos;s the
+                law of large numbers in action.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

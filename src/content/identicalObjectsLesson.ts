@@ -65,7 +65,7 @@ export const identicalObjectsLesson: Lesson = {
       id: 'count-distinct',
       type: 'numeric-question',
       title: 'How Many So Far?',
-      body: 'With three different-colored beads, every ordering looks unique.',
+      body: 'You have three beads, each a different color.',
       prompt: 'How many different patterns can 3 distinct beads make?',
       question: {
         inputType: 'numeric',
@@ -106,7 +106,7 @@ export const identicalObjectsLesson: Lesson = {
       id: 'count-identical',
       type: 'multiple-choice',
       title: 'Why Not Six?',
-      body: 'If the beads were all different we would get 3! = 6 orderings. But two reds are identical.',
+      body: 'You have two identical red beads and one blue bead.',
       prompt: 'With two identical red beads and one blue bead, how many patterns look different?',
       question: {
         inputType: 'multiple-choice',
@@ -223,7 +223,7 @@ export const identicalObjectsLesson: Lesson = {
       id: 'banana',
       type: 'numeric-question',
       title: 'Spell BANANA',
-      body: 'A classic. The word BANANA has 6 letters: three A’s, two N’s, and one B. Letters that are the same are identical.',
+      body: 'The word BANANA has 6 letters: three A’s, two N’s, and one B.',
       prompt: 'How many distinct ways can you arrange the letters of BANANA?',
       question: {
         inputType: 'numeric',
@@ -286,7 +286,7 @@ export const identicalObjectsLesson: Lesson = {
       id: 'four-beads-mc',
       type: 'numeric-question',
       title: 'Two and Two: The Count',
-      body: 'You just found the distinct patterns for 2 identical red and 2 identical blue beads by dragging. Now confirm it with the formula: start from 4! and divide out the repeats.',
+      body: 'You have 2 identical red beads and 2 identical blue beads.',
       prompt: 'How many distinct patterns can 2 identical red and 2 identical blue beads make?',
       question: {
         inputType: 'numeric',
@@ -333,7 +333,7 @@ export const identicalObjectsLesson: Lesson = {
       id: 'which-divides',
       type: 'multiple-choice',
       title: 'Spot the Repeats',
-      body: 'Dividing out repeats only matters when some items are identical.',
+      body: 'Each option below describes arranging a set of items.',
       prompt: 'Which situation needs you to divide out repeats?',
       question: {
         inputType: 'multiple-choice',

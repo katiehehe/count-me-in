@@ -37,7 +37,7 @@ export const expectedValueLesson: Lesson = {
       id: 'average-simple',
       type: 'numeric-question',
       title: 'Just an Average',
-      body: 'Start simple. A bag holds 3 equally likely slips worth $2, $4, and $9. You draw one at random. With equal chances, the expected value is just the ordinary average of the payouts.',
+      body: 'A bag holds 3 equally likely slips worth $2, $4, and $9. You draw one at random.',
       prompt: 'What is the average value of a single draw, in dollars?',
       question: {
         inputType: 'numeric',
@@ -57,7 +57,7 @@ export const expectedValueLesson: Lesson = {
         const total = sum(vals)
         const avg = total / 3
         return {
-          body: `Start simple. A bag holds 3 equally likely slips worth $${vals[0]}, $${vals[1]}, and $${vals[2]}. You draw one at random. With equal chances, the expected value is just the ordinary average of the payouts.`,
+          body: `A bag holds 3 equally likely slips worth $${vals[0]}, $${vals[1]}, and $${vals[2]}. You draw one at random.`,
           question: { correctAnswer: avg, explanation: `(${vals.join(' + ')}) ÷ 3 = ${total} ÷ 3 = ${avg}. The expected draw is worth $${avg}.` },
           feedback: {
             correct: `Yes! ${total} ÷ 3 = $${avg} on average.`,
@@ -122,7 +122,7 @@ export const expectedValueLesson: Lesson = {
       id: 'weighted-prize',
       type: 'numeric-question',
       title: 'Unequal Chances',
-      body: 'A regular average treats every outcome as equally important. But since some outcomes are more likely than others, the average should be pulled heavier toward those more-likely outcomes — so we weight each payout by its probability. A raffle ticket wins $10 with probability 1/5, and wins $0 the rest of the time.',
+      body: 'A raffle ticket wins $10 with probability 1/5, and wins $0 the rest of the time.',
       prompt: 'What is the expected payout of the ticket, in dollars?',
       question: {
         inputType: 'numeric',
@@ -148,7 +148,7 @@ export const expectedValueLesson: Lesson = {
           (v) => String(v.ev),
         )
         return {
-          body: `A regular average treats every outcome as equally important. But since some outcomes are more likely than others, the average should be pulled heavier toward those more-likely outcomes — so we weight each payout by its probability. A raffle ticket wins $${prize} with probability 1/${k}, and wins $0 the rest of the time.`,
+          body: `A raffle ticket wins $${prize} with probability 1/${k}, and wins $0 the rest of the time.`,
           question: { correctAnswer: ev, explanation: `${prize} × 1/${k} + 0 × ${k - 1}/${k} = ${ev} + 0 = $${ev} expected.` },
           feedback: {
             correct: `Yes! ${prize} × 1/${k} = $${ev} expected payout.`,
@@ -164,7 +164,7 @@ export const expectedValueLesson: Lesson = {
       id: 'game-6-third',
       type: 'numeric-question',
       title: 'Weighted Payout',
-      body: 'A game pays $6 with probability 1/3 and $0 otherwise. Weight each payout by its probability.',
+      body: 'A game pays $6 with probability 1/3 and $0 otherwise.',
       prompt: 'What is the expected payout of this game, in dollars?',
       question: {
         inputType: 'numeric',
@@ -190,7 +190,7 @@ export const expectedValueLesson: Lesson = {
           (v) => String(v.ev),
         )
         return {
-          body: `A game pays $${prize} with probability 1/${k} and $0 otherwise. Weight each payout by its probability.`,
+          body: `A game pays $${prize} with probability 1/${k} and $0 otherwise.`,
           question: { correctAnswer: ev, explanation: `${prize} × 1/${k} + 0 × ${k - 1}/${k} = $${ev}.` },
           feedback: {
             correct: `Right — ${prize} × 1/${k} = $${ev}.`,
@@ -206,7 +206,7 @@ export const expectedValueLesson: Lesson = {
       id: 'die-ev',
       type: 'numeric-question',
       title: 'Rolling for Dollars',
-      body: 'A fair die has faces 1–6, each with probability 1/6. A game pays you, in dollars, whatever the die shows. The expected payout is the average of all six equally likely payouts.',
+      body: 'A fair die has faces 1–6, each with probability 1/6. A game pays you, in dollars, whatever the die shows.',
       prompt: 'What is the expected payout of this game, in dollars?',
       question: {
         inputType: 'numeric',
@@ -216,10 +216,25 @@ export const expectedValueLesson: Lesson = {
         misconceptionTags: ['expected-value'],
       },
       feedback: {
-        correct: 'Correct! 21 ÷ 6 = $3.50 on average per roll.',
+        correct: 'Correct! 21 ÷ 6 = $3.50 on average per roll. Quick check: (1 + 6) ÷ 2 = 3.5.',
         incorrect: 'Sum 1 through 6 (that is 21), then divide by 6.',
         hint: 'Every face is equally likely, so each carries the same weight — the expected payout is simply the plain average across all six possible values.',
-        computationHint: '1 + 2 + 3 + 4 + 5 + 6 = 21, then 21 ÷ 6 = 3.5.',
+        computationHint: '1 + 2 + 3 + 4 + 5 + 6 = 21, then 21 ÷ 6 = 3.5. Shortcut: for evenly spaced faces the average is (lowest + highest) ÷ 2 = (1 + 6) ÷ 2 = 3.5.',
+      },
+      concepts: ['expected-value'],
+    },
+    {
+      id: 'watch-converge',
+      type: 'expected-value-sim',
+      title: 'Watch the Average Settle',
+      body: 'Expected value is the LONG-RUN average — so let’s watch it happen. This 11-sided die has faces 1–11, so its expected value is (1 + 2 + … + 11) ÷ 11 = 66 ÷ 11 = 6. Roll it a few times and the running average bounces around wildly; auto-roll it hundreds of times and the line settles right onto 6.',
+      expectedValueSimConfig: { sides: 11 },
+      feedback: {
+        correct:
+          'That’s the law of large numbers: any single roll is unpredictable, but average enough of them and the result locks onto the expected value of 6. Expected value is exactly this long-run average.',
+        incorrect: '',
+        hint: 'Each face 1–11 is equally likely, so the balance point of all the values is dead center. Keep rolling and watch the blue line hug the dashed line.',
+        computationHint: '(1 + 2 + … + 11) ÷ 11 = 66 ÷ 11 = 6, the value the running average converges to. Shortcut: for evenly spaced faces the average is (lowest + highest) ÷ 2 = (1 + 11) ÷ 2 = 6.',
       },
       concepts: ['expected-value'],
     },
@@ -241,7 +256,7 @@ export const expectedValueLesson: Lesson = {
           'Exactly — $5.50. Since $5.50 > $3.50, you’d rather roll the 10-sided die: its expected (average) outcome is higher, so it pays more in the long run.',
         incorrect: 'Add 1 through 10 (that is 55), then divide by 10.',
         hint: 'The ten faces are equally likely, so weight them evenly and average them — the same plain average as the d6, just spread across ten values instead of six.',
-        computationHint: '1 + 2 + … + 10 = 55, then 55 ÷ 10 = 5.5.',
+        computationHint: '1 + 2 + … + 10 = 55, then 55 ÷ 10 = 5.5. Shortcut: for evenly spaced faces the average is (lowest + highest) ÷ 2 = (1 + 10) ÷ 2 = 5.5.',
       },
       concepts: ['expected-value'],
     },

@@ -4,6 +4,7 @@ export type StepType =
   | 'intro'
   | 'multiple-choice'
   | 'numeric-question'
+  | 'fraction-question'
   | 'arrangement'
   | 'connection'
   | 'tree'
@@ -14,6 +15,9 @@ export type StepType =
   | 'condensing'
   | 'combined-experiment'
   | 'dependence-pairing'
+  | 'expected-value-sim'
+  | 'product-grid'
+  | 'multiset-condense'
   | 'completion'
 
 export interface Course {
@@ -63,6 +67,11 @@ export interface ArrangementItem {
 export interface FactorialDiscoveryConfig {
   itemLabel: string
   count: number
+  /**
+   * Number of slots/boxes to fill. Defaults to `count` (a full factorial). Set
+   * smaller to build a partial product like nPr (e.g. count 5, slots 3 → 5×4×3).
+   */
+  slots?: number
 }
 
 export interface ConnectionGroupItem {
@@ -162,12 +171,47 @@ export interface DependenceCard {
   id: string
   label: string
   emoji?: string
+  /** Optional accent color for the card's icon (e.g. a red vs blue die). */
+  color?: string
 }
 
 export interface DependencePairingConfig {
   cards: DependenceCard[]
   /** Pairs of card ids that are dependent (one event affects the other). Order within a pair does not matter. */
   dependentPairs: [string, string][]
+}
+
+export interface ExpectedValueSimConfig {
+  /** Number of die sides; faces are 1…sides, each equally likely. Defaults to 11. */
+  sides?: number
+}
+
+export interface MultisetGroupConfig {
+  label: string
+  /** Hex color for this group's cards. */
+  color: string
+  /** How many identical cards of this color. */
+  count: number
+}
+
+export interface MultisetCondenseConfig {
+  /** Color groups of identical cards. Defaults to 2 red + 2 blue. */
+  groups?: MultisetGroupConfig[]
+}
+
+export interface ProductGridConfig {
+  /** Noun for the first-stage items (grid rows), e.g. "shirt". */
+  rowLabel: string
+  /** Noun for the second-stage items (grid columns), e.g. "pant". */
+  colLabel: string
+  rows: number
+  cols: number
+  /** Optional emoji shown beside each row item. */
+  rowEmoji?: string
+  /** Optional emoji shown above each column item. */
+  colEmoji?: string
+  /** Noun for one combined outcome, e.g. "outfit". Defaults to "outcome". */
+  pairingLabel?: string
 }
 
 export interface LessonStep {
@@ -186,6 +230,9 @@ export interface LessonStep {
   condensingConfig?: CondensingConfig
   combinedExperimentConfig?: CombinedExperimentConfig
   dependencePairingConfig?: DependencePairingConfig
+  expectedValueSimConfig?: ExpectedValueSimConfig
+  productGridConfig?: ProductGridConfig
+  multisetCondenseConfig?: MultisetCondenseConfig
   /** When set, renders a systematic, color-coded list of all orderings of these items. */
   orderingsDisplay?: ArrangementItem[]
   question?: Question
@@ -201,8 +248,13 @@ export interface LessonStep {
 }
 
 export interface Question {
-  inputType: 'multiple-choice' | 'numeric' | 'slider' | 'select'
+  inputType: 'multiple-choice' | 'numeric' | 'slider' | 'select' | 'fraction'
   choices?: string[]
+  /**
+   * The correct answer. For `fraction` questions this is a fraction string such
+   * as `'1/12'` (or a whole-number string); any equivalent fraction the learner
+   * types is accepted as correct (e.g. `3/12` matches `1/4`).
+   */
   correctAnswer?: string | number
   tolerance?: number
   correctChoiceIndex?: number

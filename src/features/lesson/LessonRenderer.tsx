@@ -131,10 +131,16 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
         const restored: Record<string, StepState> = {}
         for (const [stepId, record] of Object.entries(progress.stepAnswers ?? {})) {
           const numericAnswer = typeof record.answer === 'number' ? record.answer : null
+          // Keep string answers (e.g. typed fractions like "1/4") on resume too;
+          // only numeric answers map to a multiple-choice selectedIndex.
+          const storedAnswer =
+            typeof record.answer === 'number' || typeof record.answer === 'string'
+              ? record.answer
+              : null
           restored[stepId] = {
             answered: true,
             correct: record.correct,
-            answer: numericAnswer,
+            answer: storedAnswer,
             selectedIndex: numericAnswer,
             firstTry: record.firstAttemptCorrect ?? record.correct,
             everCorrect: record.correct === true,
@@ -445,7 +451,9 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
       <div className="mx-auto max-w-2xl px-4 py-6 pb-28">
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{lesson.title}</h1>
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+              {lesson.title}
+            </h1>
             <span className="rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-bold text-success-700">
               ✓ Completed
             </span>
@@ -463,7 +471,7 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
           onJumpToStep={handleJumpToStep}
         />
 
-        <div className="fixed bottom-0 left-0 right-0 border-t border-brand-100/80 bg-white/95 px-4 py-4 backdrop-blur">
+        <div className="fixed bottom-0 left-0 right-0 border-t border-brand-100/80 bg-white/95 px-4 py-3 backdrop-blur sm:py-4">
           <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-2">
             <Button variant="secondary" onClick={() => navigate('/course')}>
               Back to course
@@ -500,7 +508,9 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
           ← Back to course
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{lesson.title}</h1>
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+            {lesson.title}
+          </h1>
           {alreadyCompleted && (
             <span className="rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-bold text-success-700">
               ✓ Completed
@@ -536,7 +546,9 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
 
       <Card>
         <div className="mb-2 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-bold text-slate-900">{step.title}</h2>
+          <h2 className="font-serif text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+            {step.title}
+          </h2>
           {isGradedStepType(step.type) && (
             <StarButton
               size="sm"
@@ -593,7 +605,7 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
         </Card>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:py-4">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
           {isCompletion ? (
             <>

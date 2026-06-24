@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ConnectionGroupItem } from '../../content/types'
+import { TokenIcon } from '../../components/icons/TokenIcon'
+import { hasTokenIcon } from '../../components/icons/tokenIconUtils'
 
 interface OutcomeSelectProps {
   leftLabel: string
@@ -110,7 +112,7 @@ export function OutcomeSelect({
     sel: number | null,
     setSel: (i: number) => void,
   ) => (
-    <div className="flex flex-col justify-center gap-2.5">
+    <div className="flex h-full flex-col justify-center gap-2.5">
       {items.map((item, i) => {
         const isSelected = sel === i
         return (
@@ -129,13 +131,22 @@ export function OutcomeSelect({
             }`}
             style={{ backgroundColor: `${item.color}1f` }}
           >
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg shadow-inner"
-              style={{ backgroundColor: `${item.color}33` }}
-              aria-hidden
-            >
-              {item.emoji ?? '●'}
-            </span>
+            {hasTokenIcon(item.emoji) ? (
+              <TokenIcon
+                emoji={item.emoji}
+                label={item.label}
+                color={item.color}
+                className="h-9 w-9 shrink-0 drop-shadow-sm"
+              />
+            ) : (
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg shadow-inner"
+                style={{ backgroundColor: `${item.color}33` }}
+                aria-hidden
+              >
+                {item.emoji ?? '●'}
+              </span>
+            )}
             <span className="text-sm leading-tight text-slate-700">{item.label}</span>
           </button>
         )

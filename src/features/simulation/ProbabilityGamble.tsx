@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { InteractionGuide } from './InteractionGuide'
 import { useReducedMotion } from './useReducedMotion'
+
+// Enough dropped points that the empirical win rate is meaningful.
+const GIST_DOTS = 50
 
 interface ProbabilityGambleProps {
   eventALabel: string
@@ -34,6 +38,8 @@ export function ProbabilityGamble({
   const [bPercent, setBPercent] = useState(initialBPercent)
   const [dots, setDots] = useState<Dot[]>([])
   const [spinning, setSpinning] = useState(false)
+  const [sliderMoved, setSliderMoved] = useState(false)
+  const sliderMovedRef = useRef(false)
   const completedRef = useRef(false)
   const timerRef = useRef<number | null>(null)
 
@@ -50,12 +56,15 @@ export function ProbabilityGamble({
     }
   }, [])
 
-  const markComplete = useCallback(() => {
-    if (!completedRef.current) {
-      completedRef.current = true
-      onComplete?.()
-    }
-  }, [onComplete])
+  const tryComplete = useCallback(
+    (dotCount: number) => {
+      if (!completedRef.current && sliderMovedRef.current && dotCount >= GIST_DOTS) {
+        completedRef.current = true
+        onComplete?.()
+      }
+    },
+    [onComplete],
+  )
 
   const dropPoints = (count: number) => {
     const next: Dot[] = []
@@ -64,17 +73,24 @@ export function ProbabilityGamble({
       const y = Math.random()
       next.push({ x, y, win: x < a && y < b })
     }
+    const projected = count >= GIST_DOTS ? count : dots.length + count
     if (count === 1 && !reducedMotion) {
       setSpinning(true)
       timerRef.current = window.setTimeout(() => {
         setDots((prev) => [...prev.slice(-199), ...next])
         setSpinning(false)
-        markComplete()
+        tryComplete(projected)
       }, 450)
     } else {
       setDots((prev) => [...prev.slice(-(200 - count)), ...next])
-      markComplete()
+      tryComplete(projected)
     }
+  }
+
+  const handleSliderChange = () => {
+    setSliderMoved(true)
+    sliderMovedRef.current = true
+    setDots([])
   }
 
   const reset = () => setDots([])
@@ -90,7 +106,7 @@ export function ProbabilityGamble({
           color="#2d5894"
           onChange={(v) => {
             setAPercent(v)
-            setDots([])
+            handleSliderChange()
           }}
         />
         <SliderRow
@@ -99,7 +115,7 @@ export function ProbabilityGamble({
           color="#c2410c"
           onChange={(v) => {
             setBPercent(v)
-            setDots([])
+            handleSliderChange()
           }}
         />
       </div>
@@ -170,7 +186,7 @@ export function ProbabilityGamble({
           type="button"
           onClick={() => dropPoints(1)}
           disabled={spinning}
-          className="rounded-2xl bg-brand-500 px-5 py-3 text-base font-bold text-white shadow-sm shadow-brand-200 transition-colors hover:bg-brand-600 disabled:opacity-60"
+          className="rounded-2xl bg-brand-500 px-4 py-2.5 text-sm font-bold sm:px-5 sm:py-3 sm:text-base text-white shadow-sm shadow-brand-200 transition-colors hover:bg-brand-600 disabled:opacity-60"
         >
           🎯 Spin once
         </button>
@@ -178,7 +194,7 @@ export function ProbabilityGamble({
           type="button"
           onClick={() => dropPoints(100)}
           disabled={spinning}
-          className="rounded-2xl border-2 border-brand-300 bg-white px-5 py-3 text-base font-bold text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-60"
+          className="rounded-2xl border-2 border-brand-300 bg-white px-4 py-2.5 text-sm font-bold sm:px-5 sm:py-3 sm:text-base text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-60"
         >
           Spin 100×
         </button>
@@ -192,6 +208,16 @@ export function ProbabilityGamble({
           </button>
         )}
       </div>
+
+      <InteractionGuide
+        steps={[
+          { label: 'Drag a slider to set P(A) or P(B)', done: sliderMoved },
+          {
+            label: `Spin 100× to drop points (${Math.min(dots.length, GIST_DOTS)}/${GIST_DOTS})`,
+            done: dots.length >= GIST_DOTS,
+          },
+        ]}
+      />
     </div>
   )
 }

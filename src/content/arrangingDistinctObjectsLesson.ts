@@ -56,7 +56,7 @@ export const arrangingDistinctObjectsLesson: Lesson = {
       id: 'count-three',
       type: 'multiple-choice',
       title: 'Count the Orderings',
-      body: 'You have 3 distinct trophies (Gold, Silver, Bronze) to place left-to-right on a shelf. Each different ordering is one permutation.',
+      body: 'You have 3 distinct trophies — Gold, Silver, and Bronze — to place left-to-right on a shelf.',
       prompt: 'How many different ways can you arrange the 3 distinct trophies (Gold, Silver, Bronze) in a row?',
       orderingsDisplay: trophyItems,
       question: {
@@ -158,38 +158,19 @@ export const arrangingDistinctObjectsLesson: Lesson = {
     },
     {
       id: 'five-contestants',
-      type: 'numeric-question',
+      type: 'factorial-discovery',
       title: 'Contest Podium',
-      body: 'At a math contest, 5 distinct finalists stand in a row for a photo. Order matters — each spot is different.',
-      prompt: 'How many ways can 5 distinct contestants line up?',
-      question: {
-        inputType: 'numeric',
-        correctAnswer: 120,
-        tolerance: 0,
-        explanation: '5! = 5 × 4 × 3 × 2 × 1 = 120.',
-        misconceptionTags: ['partial-factorial'],
+      body: 'At a math contest, 5 distinct finalists line up in a row for a photo — order matters, each spot is different. Build the count slot by slot: type how many finalists could fill the first spot, then how many are left for the second, and so on down to the last.',
+      factorialConfig: {
+        itemLabel: 'finalist',
+        count: 5,
       },
       feedback: {
-        correct: '5! = 120. The counting principle scales beautifully!',
-        incorrect: 'Multiply: 5 × 4 × 3 × 2 × 1. That is 5 factorial.',
-        hint: 'Every spot in the row is distinct and each contestant is used once, so the number of choices falls by one from each position to the next. Multiplying that descending chain of choices is a factorial.',
-        computationHint: '5 × 4 × 3 × 2 × 1 = 120.',
-      },
-      randomize: (r) => {
-        const n = r.uniqueInt('fact-n', 4, 7)
-        const value = factorial(n)
-        return {
-          title: 'Contest Lineup',
-          body: `At a math contest, ${n} distinct finalists stand in a row for a photo. Order matters — each spot is different.`,
-          prompt: `How many ways can ${n} distinct contestants line up?`,
-          question: { correctAnswer: value, explanation: `${n}! = ${descendingProduct(n)} = ${value}.` },
-          feedback: {
-            correct: `${n}! = ${value}. The counting principle scales beautifully!`,
-            incorrect: `Multiply: ${descendingProduct(n)}. That is ${n} factorial.`,
-            hint: 'Every spot in the row is distinct and each contestant is used once, so the number of choices falls by one from each position to the next. Multiplying that descending chain of choices is a factorial.',
-            computationHint: `${descendingProduct(n)} = ${value}.`,
-          },
-        }
+        correct:
+          '5 × 4 × 3 × 2 × 1 = 120 = 5!. Each spot you fill leaves one fewer finalist for the next, and the choices multiply.',
+        incorrect: '',
+        hint: 'Each spot is distinct and every finalist is used once, so the choices fall by one from each position to the next. Multiply that descending chain — that is a factorial.',
+        computationHint: '5 × 4 × 3 × 2 × 1 = 120 = 5!.',
       },
       concepts: ['factorial', 'counting-principle'],
     },
@@ -308,7 +289,7 @@ export const arrangingDistinctObjectsLesson: Lesson = {
       id: 'why-multiply',
       type: 'multiple-choice',
       title: 'Why Multiply?',
-      body: 'When you arrange distinct objects, you multiply the choices at each step rather than adding them.',
+      body: 'You are counting the arrangements of several distinct objects in a row.',
       prompt: 'Why do we multiply (not add) when counting arrangements of distinct objects?',
       question: {
         inputType: 'multiple-choice',

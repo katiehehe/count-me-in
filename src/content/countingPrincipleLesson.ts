@@ -105,37 +105,24 @@ export const countingPrincipleLesson: Lesson = {
     },
     {
       id: 'generalize-two',
-      type: 'numeric-question',
+      type: 'product-grid',
       title: 'A Bigger Wardrobe',
-      body: 'The rule: when you build something in stages, multiply the number of choices at each stage. Suppose now you have 4 shirts and 3 pairs of pants, and an outfit is one shirt with one pair of pants.',
-      prompt: 'How many outfits can you make from 4 shirts and 3 pairs of pants?',
-      question: {
-        inputType: 'numeric',
-        correctAnswer: 12,
-        tolerance: 0,
-        explanation: '4 shirts × 3 pants = 12 outfits.',
-        misconceptionTags: ['counting-principle'],
+      body: 'Now build a bigger wardrobe: 4 shirts and 3 pairs of pants, where an outfit is one shirt with one pair of pants. Tap each shirt to pair it with all 3 pants and watch the grid of outfits fill in.',
+      productGridConfig: {
+        rowLabel: 'shirt',
+        colLabel: 'pant',
+        rows: 4,
+        cols: 3,
+        rowEmoji: '👕',
+        colEmoji: '👖',
+        pairingLabel: 'outfit',
       },
       feedback: {
-        correct: 'Yes! 4 × 3 = 12 outfits.',
-        incorrect: 'Multiply the choices: 4 shirts × 3 pants.',
-        hint: 'Every shirt can pair with any pair of pants, so each shirt contributes a whole set of pant choices. Sets repeated like that get multiplied together.',
-        computationHint: '4 shirts × 3 pants = 12 outfits.',
-      },
-      randomize: (r) => {
-        const [a, b] = r.factorPair('mult2', 3, 6)
-        const total = a * b
-        return {
-          body: `The rule: when you build something in stages, multiply the number of choices at each stage. Suppose now you have ${a} shirts and ${b} pairs of pants, and an outfit is one shirt with one pair of pants.`,
-          prompt: `How many outfits can you make from ${a} shirts and ${b} pairs of pants?`,
-          question: { correctAnswer: total, explanation: `${a} shirts × ${b} pants = ${total} outfits.` },
-          feedback: {
-            correct: `Yes! ${a} × ${b} = ${total} outfits.`,
-            incorrect: `Multiply the choices: ${a} shirts × ${b} pants.`,
-            hint: 'Every shirt can pair with any pair of pants, so each shirt contributes a whole set of pant choices. Sets repeated like that get multiplied together.',
-            computationHint: `${a} shirts × ${b} pants = ${total} outfits.`,
-          },
-        }
+        correct:
+          'Every shirt pairs with all 3 pants: 4 shirts × 3 pants = 12 outfits. Each new shirt adds a whole row of 3, so the counts multiply.',
+        incorrect: '',
+        hint: 'Each shirt branches into a full row of pant choices, so you repeat the same 3 options for every shirt — repeated sets multiply.',
+        computationHint: '4 shirts × 3 pants = 12 outfits (four rows of three).',
       },
       concepts: ['counting-principle'],
     },
@@ -240,7 +227,7 @@ export const countingPrincipleLesson: Lesson = {
       id: 'generalize-three',
       type: 'numeric-question',
       title: 'Three Stages',
-      body: 'The counting principle works for any number of stages — just keep multiplying. A lunch combo is built from 2 sandwiches, 3 drinks, and 2 desserts, choosing exactly one of each.',
+      body: 'A lunch combo is built from 2 sandwiches, 3 drinks, and 2 desserts, choosing exactly one of each.',
       prompt: 'How many different lunch combos can you build from 2 sandwiches, 3 drinks, and 2 desserts?',
       question: {
         inputType: 'numeric',
@@ -260,7 +247,7 @@ export const countingPrincipleLesson: Lesson = {
         const total = product([a, b, c])
         const expr = joinTimes([a, b, c])
         return {
-          body: `The counting principle works for any number of stages — just keep multiplying. A lunch combo is built from ${a} sandwiches, ${b} drinks, and ${c} desserts, choosing exactly one of each.`,
+          body: `A lunch combo is built from ${a} sandwiches, ${b} drinks, and ${c} desserts, choosing exactly one of each.`,
           prompt: `How many different lunch combos can you build from ${a} sandwiches, ${b} drinks, and ${c} desserts?`,
           question: { correctAnswer: total, explanation: `${expr} = ${total} combos: multiply the choices at all three stages.` },
           feedback: {
@@ -312,37 +299,24 @@ export const countingPrincipleLesson: Lesson = {
     },
     {
       id: 'diner-meals',
-      type: 'numeric-question',
+      type: 'product-grid',
       title: 'At the Diner',
-      body: 'A diner offers 5 main dishes and 4 drinks. A meal is one main and one drink.',
-      prompt: 'How many different meals are possible with 5 mains and 4 drinks?',
-      question: {
-        inputType: 'numeric',
-        correctAnswer: 20,
-        tolerance: 0,
-        explanation: '5 mains × 4 drinks = 20 meals.',
-        misconceptionTags: ['counting-principle'],
+      body: 'A diner offers 4 main dishes and 3 drinks, where a meal is one main with one drink. Tap each main to pair it with all 3 drinks and watch the meals add up.',
+      productGridConfig: {
+        rowLabel: 'main',
+        colLabel: 'drink',
+        rows: 4,
+        cols: 3,
+        rowEmoji: '🍽️',
+        colEmoji: '🥤',
+        pairingLabel: 'meal',
       },
       feedback: {
-        correct: 'Right! 5 × 4 = 20 meals.',
-        incorrect: 'Multiply the choices at each stage: 5 × 4 (9 would be adding them).',
-        hint: 'Each main can be paired with any drink, so the full set of drinks repeats for every main. Repeated sets multiply.',
-        computationHint: '5 mains × 4 drinks = 20 meals.',
-      },
-      randomize: (r) => {
-        const [a, b] = r.factorPair('mult2', 4, 7)
-        const total = a * b
-        return {
-          body: `A diner offers ${a} main dishes and ${b} drinks. A meal is one main and one drink.`,
-          prompt: `How many different meals are possible with ${a} mains and ${b} drinks?`,
-          question: { correctAnswer: total, explanation: `${a} mains × ${b} drinks = ${total} meals.` },
-          feedback: {
-            correct: `Right! ${a} × ${b} = ${total} meals.`,
-            incorrect: `Multiply the choices at each stage: ${a} × ${b} (${a + b} would be adding them).`,
-            hint: 'Each main can be paired with any drink, so the full set of drinks repeats for every main. Repeated sets multiply.',
-            computationHint: `${a} mains × ${b} drinks = ${total} meals.`,
-          },
-        }
+        correct:
+          'Every main pairs with all 3 drinks: 4 mains × 3 drinks = 12 meals. Each new main adds another full row of drinks, so the counts multiply.',
+        incorrect: '',
+        hint: 'Each main can be paired with any drink, so the full set of drinks repeats for every main — repeated sets multiply.',
+        computationHint: '4 mains × 3 drinks = 12 meals (four rows of three).',
       },
       concepts: ['counting-principle'],
     },

@@ -53,7 +53,7 @@ export function NumericQuestionStep({
 
   return (
     <div>
-      {prompt && <p className="mb-4 text-lg font-medium text-slate-800">{prompt}</p>}
+      {prompt && <p className="mb-4 text-base font-medium text-slate-800 sm:text-lg">{prompt}</p>}
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
           type="number"
@@ -63,7 +63,7 @@ export function NumericQuestionStep({
           onWheel={(e) => e.currentTarget.blur()}
           disabled={disabled || locked}
           placeholder="Type your answer"
-          className="flex-1 rounded-2xl border-2 border-brand-100 bg-white px-4 py-3 text-lg font-mono focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
+          className="flex-1 rounded-2xl border-2 border-brand-100 bg-white px-4 py-3 font-mono text-base focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100 sm:text-lg"
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
         />
         {!locked && (
@@ -79,7 +79,7 @@ export function NumericQuestionStep({
           message={
             isCorrect
               ? question.explanation || feedback?.correct || ''
-              : feedback?.incorrect ?? question.explanation
+              : 'Not quite — give it another try. Stuck? Use the hint below.'
           }
         />
       )}

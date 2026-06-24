@@ -44,7 +44,7 @@ export const probabilityDistributionsLesson: Lesson = {
       id: 'sim-expected-count',
       type: 'numeric-question',
       title: 'How Many Do You Expect?',
-      body: 'You saw that each face of a fair 6-sided die comes up about 1/6 of the time. So if you roll many times, you can predict roughly how many of each face to expect.',
+      body: 'A fair 6-sided die has each face come up about 1/6 of the time.',
       prompt: 'If you roll a fair 6-sided die 600 times, about how many 4s do you expect?',
       question: {
         inputType: 'numeric',
@@ -115,7 +115,7 @@ export const probabilityDistributionsLesson: Lesson = {
       id: 'combined-count',
       type: 'numeric-question',
       title: 'Predict the Combined Count',
-      body: 'Each trial rolls a die and flips a coin. A “win” is rolling a 4 AND flipping Tails, which happens with probability 1/6 × 1/2 = 1/12.',
+      body: 'Each trial rolls a fair die (6 faces) and flips a coin (2 sides). A “win” is rolling a 4 AND flipping Tails.',
       prompt: 'Over 1200 trials, about how many do you expect to be 4 AND Tails?',
       question: {
         inputType: 'numeric',
@@ -135,7 +135,7 @@ export const probabilityDistributionsLesson: Lesson = {
         const trials = combinedTrials(r)
         const expected = trials / 12
         return {
-          body: `Each trial rolls a die and flips a coin. A “win” is rolling a ${face} AND flipping Tails, which happens with probability 1/6 × 1/2 = 1/12.`,
+          body: `Each trial rolls a fair die (6 faces) and flips a coin (2 sides). A “win” is rolling a ${face} AND flipping Tails.`,
           prompt: `Over ${trials} trials, about how many do you expect to be ${face} AND Tails?`,
           question: { correctAnswer: expected, explanation: `P(${face} and Tails) = 1/12, so ${trials} × 1/12 = ${expected} expected wins.` },
           feedback: {

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ConnectionGroupItem } from '../../content/types'
+import { TokenIcon } from '../../components/icons/TokenIcon'
+import { hasTokenIcon } from '../../components/icons/tokenIconUtils'
 
 interface ConnectionBoardProps {
   leftLabel: string
@@ -210,13 +212,22 @@ export function ConnectionBoard({
               borderColor: isSelected ? '#2d5894' : item.color,
             }}
           >
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg text-white ring-2 ring-white/70 shadow-sm"
-              style={{ backgroundColor: item.color }}
-              aria-hidden
-            >
-              {item.emoji ?? '●'}
-            </span>
+            {hasTokenIcon(item.emoji) ? (
+              <TokenIcon
+                emoji={item.emoji}
+                label={item.label}
+                color={item.color}
+                className="h-9 w-9 shrink-0 drop-shadow-sm"
+              />
+            ) : (
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg text-white ring-2 ring-white/70 shadow-sm"
+                style={{ backgroundColor: item.color }}
+                aria-hidden
+              >
+                {item.emoji ?? '●'}
+              </span>
+            )}
             <span className="text-sm leading-tight text-slate-700">{item.label}</span>
           </button>
         )

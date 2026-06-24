@@ -38,7 +38,11 @@ export function getMasteryTier(masteryScore: number): MasteryTier {
  * score. Exploratory/build steps (arrangement, connection, tree, factorial
  * discovery, intro, completion) are not graded.
  */
-export const GRADED_STEP_TYPES: ReadonlyArray<StepType> = ['multiple-choice', 'numeric-question']
+export const GRADED_STEP_TYPES: ReadonlyArray<StepType> = [
+  'multiple-choice',
+  'numeric-question',
+  'fraction-question',
+]
 
 export function isGradedStepType(type: StepType): boolean {
   return GRADED_STEP_TYPES.includes(type)

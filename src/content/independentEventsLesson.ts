@@ -43,8 +43,8 @@ export const independentEventsLesson: Lesson = {
           { id: 'rain', label: 'It rains this afternoon', emoji: '☔' },
           { id: 'injury', label: 'The star player gets injured', emoji: '🤕' },
           { id: 'loss', label: 'The team loses the game', emoji: '🏀' },
-          { id: 'red-die', label: 'You roll a 4 on the red die', emoji: '🎲' },
-          { id: 'blue-die', label: 'You roll a 2 on the blue die', emoji: '🎲' },
+          { id: 'red-die', label: 'You roll a 4 on the red die', emoji: '⚃', color: '#dc2626' },
+          { id: 'blue-die', label: 'You roll a 2 on the blue die', emoji: '⚁', color: '#2563eb' },
         ],
         dependentPairs: [
           ['clouds', 'rain'],
@@ -64,7 +64,7 @@ export const independentEventsLesson: Lesson = {
       id: 'count-outcomes',
       type: 'numeric-question',
       title: 'Count the Combined Outcomes',
-      body: 'A coin has 2 equally likely outcomes (Heads, Tails). A standard die has 6 equally likely outcomes (1–6). If you flip the coin and roll the die, each coin result can pair with each die result.',
+      body: 'A coin has 2 equally likely outcomes (Heads, Tails). A standard die has 6 equally likely outcomes (1–6). You flip the coin and roll the die.',
       prompt: 'How many equally likely combined outcomes are there from one coin flip and one die roll?',
       question: {
         inputType: 'numeric',
@@ -155,7 +155,7 @@ export const independentEventsLesson: Lesson = {
       id: 'multiply-rule',
       type: 'multiple-choice',
       title: 'The Multiply Rule',
-      body: 'Notice 1/2 × 1/6 = 1/12 — the same answer. For independent events, P(A and B) = P(A) × P(B). P(Heads) = 1/2 and P(rolling a 6) = 1/6.',
+      body: 'A fair coin has P(Heads) = 1/2 and a fair die has P(rolling a 6) = 1/6.',
       prompt: 'What is P(Heads and a 6)?',
       question: {
         inputType: 'multiple-choice',
@@ -199,38 +199,36 @@ export const independentEventsLesson: Lesson = {
     },
     {
       id: 'two-coins',
-      type: 'numeric-question',
+      type: 'fraction-question',
       title: 'Two Heads in a Row',
-      body: 'Each flip of a fair coin is independent and has P(Heads) = 1/2. You flip the coin twice and want Heads both times. Multiply the probabilities, then enter the DENOMINATOR of the reduced fraction.',
-      prompt: 'What is P(Heads then Heads)? Enter the denominator of the fraction.',
+      body: 'A fair coin has P(Heads) = 1/2. You flip it twice and want Heads both times.',
+      prompt: 'What is P(Heads then Heads)? Enter your answer as a fraction (e.g. 1/4).',
       question: {
-        inputType: 'numeric',
-        correctAnswer: 4,
-        tolerance: 0,
-        explanation: '1/2 × 1/2 = 1/4, so the denominator is 4.',
+        inputType: 'fraction',
+        correctAnswer: '1/4',
+        explanation: '1/2 × 1/2 = 1/4.',
         misconceptionTags: ['multiply-probabilities'],
       },
       feedback: {
         correct: 'Yes! 1/2 × 1/2 = 1/4.',
-        incorrect: 'Multiply 1/2 × 1/2 — multiply the denominators: 2 × 2.',
+        incorrect: 'Multiply 1/2 × 1/2 — multiply the numerators and the denominators: (1×1)/(2×2).',
         hint: 'Each flip is independent, so a second Heads is no easier to get — every extra flip multiplies in another 1/2, making the combined chance smaller.',
-        computationHint: '1/2 × 1/2 = 1/4, so the denominator is 4.',
+        computationHint: '1/2 × 1/2 = 1/4.',
       },
       randomize: (r) => {
         const k = r.uniqueInt('coin-flips', 2, 4)
         const denom = 2 ** k
         const probExpr = joinTimes(Array(k).fill('1/2'))
-        const denomExpr = joinTimes(Array(k).fill(2))
         return {
           title: `${k} Heads in a Row`,
-          body: `Each flip of a fair coin is independent and has P(Heads) = 1/2. You flip the coin ${k} times and want Heads every time. Multiply the probabilities, then enter the DENOMINATOR of the reduced fraction.`,
-          prompt: `What is P(Heads on all ${k} flips)? Enter the denominator of the fraction.`,
-          question: { correctAnswer: denom, explanation: `${probExpr} = 1/${denom}, so the denominator is ${denom}.` },
+          body: `A fair coin has P(Heads) = 1/2. You flip it ${k} times and want Heads every time.`,
+          prompt: `What is P(Heads on all ${k} flips)? Enter your answer as a fraction.`,
+          question: { correctAnswer: `1/${denom}`, explanation: `${probExpr} = 1/${denom}.` },
           feedback: {
             correct: `Yes! ${probExpr} = 1/${denom}.`,
-            incorrect: `Multiply the denominators: ${denomExpr}.`,
+            incorrect: `Multiply the fractions: ${probExpr} = 1/${denom}.`,
             hint: 'Each flip is independent, so a second Heads is no easier to get — every extra flip multiplies in another 1/2, making the combined chance smaller.',
-            computationHint: `${probExpr} = 1/${denom}, so the denominator is ${denom}.`,
+            computationHint: `${probExpr} = 1/${denom}.`,
           },
         }
       },
@@ -238,59 +236,56 @@ export const independentEventsLesson: Lesson = {
     },
     {
       id: 'two-dice',
-      type: 'numeric-question',
+      type: 'fraction-question',
       title: 'Double Sixes',
-      body: 'Rolling two fair dice, each roll is independent with P(a specific number) = 1/6. You want a 6 on the first die AND a 6 on the second die. Multiply, then enter the DENOMINATOR of the reduced fraction.',
-      prompt: 'What is P(rolling a 6 on both dice)? Enter the denominator of the fraction.',
+      body: 'Each fair die has 6 faces, so P(a specific number) = 1/6. You roll two dice and want a 6 on the first die AND a 6 on the second.',
+      prompt: 'What is P(rolling a 6 on both dice)? Enter your answer as a fraction (e.g. 1/36).',
       question: {
-        inputType: 'numeric',
-        correctAnswer: 36,
-        tolerance: 0,
-        explanation: '1/6 × 1/6 = 1/36, so the denominator is 36.',
+        inputType: 'fraction',
+        correctAnswer: '1/36',
+        explanation: '1/6 × 1/6 = 1/36.',
         misconceptionTags: ['multiply-probabilities'],
       },
       feedback: {
         correct: 'Correct! 1/6 × 1/6 = 1/36.',
-        incorrect: 'Multiply the denominators: 6 × 6.',
+        incorrect: 'Multiply the fractions: (1×1)/(6×6) = 1/36.',
         hint: 'The two dice are independent, so the second die is still 1 in 6 no matter what the first showed — multiply the two 1/6 chances and the joint result is far rarer than either alone.',
-        computationHint: '1/6 × 1/6 = 1/36, so the denominator is 36.',
+        computationHint: '1/6 × 1/6 = 1/36.',
       },
       concepts: ['independent-events', 'counting-principle'],
     },
     {
       id: 'three-heads',
-      type: 'numeric-question',
+      type: 'fraction-question',
       title: 'Three Heads',
-      body: 'A fair coin has P(Heads) = 1/2, and each flip is independent. You flip it three times and want Heads all three times. Multiply, then enter the DENOMINATOR of the fraction.',
-      prompt: 'What is P(Heads on all three flips)? Enter the denominator of the fraction.',
+      body: 'A fair coin has P(Heads) = 1/2. You flip it three times and want Heads all three times.',
+      prompt: 'What is P(Heads on all three flips)? Enter your answer as a fraction (e.g. 1/8).',
       question: {
-        inputType: 'numeric',
-        correctAnswer: 8,
-        tolerance: 0,
-        explanation: '1/2 × 1/2 × 1/2 = 1/8, so the denominator is 8.',
+        inputType: 'fraction',
+        correctAnswer: '1/8',
+        explanation: '1/2 × 1/2 × 1/2 = 1/8.',
         misconceptionTags: ['multiply-probabilities'],
       },
       feedback: {
         correct: 'Yes! 1/8.',
-        incorrect: 'Multiply the denominators: 2 × 2 × 2.',
+        incorrect: 'Multiply the fractions: (1×1×1)/(2×2×2) = 1/8.',
         hint: 'Independent flips don’t build on each other, so every Heads you require simply multiplies in another 1/2 — three of them stack three halves together.',
-        computationHint: '1/2 × 1/2 × 1/2 = 1/8, so the denominator is 8.',
+        computationHint: '1/2 × 1/2 × 1/2 = 1/8.',
       },
       randomize: (r) => {
         const k = r.uniqueInt('coin-flips', 2, 4)
         const denom = 2 ** k
         const probExpr = joinTimes(Array(k).fill('1/2'))
-        const denomExpr = joinTimes(Array(k).fill(2))
         return {
           title: `${k} Heads`,
-          body: `A fair coin has P(Heads) = 1/2, and each flip is independent. You flip it ${k} times and want Heads every time. Multiply, then enter the DENOMINATOR of the fraction.`,
-          prompt: `What is P(Heads on all ${k} flips)? Enter the denominator of the fraction.`,
-          question: { correctAnswer: denom, explanation: `${probExpr} = 1/${denom}, so the denominator is ${denom}.` },
+          body: `A fair coin has P(Heads) = 1/2. You flip it ${k} times and want Heads every time.`,
+          prompt: `What is P(Heads on all ${k} flips)? Enter your answer as a fraction.`,
+          question: { correctAnswer: `1/${denom}`, explanation: `${probExpr} = 1/${denom}.` },
           feedback: {
             correct: `Yes! 1/${denom}.`,
-            incorrect: `Multiply the denominators: ${denomExpr}.`,
+            incorrect: `Multiply the fractions: ${probExpr} = 1/${denom}.`,
             hint: 'Independent flips don’t build on each other, so every Heads you require simply multiplies in another 1/2.',
-            computationHint: `${probExpr} = 1/${denom}, so the denominator is ${denom}.`,
+            computationHint: `${probExpr} = 1/${denom}.`,
           },
         }
       },
@@ -300,11 +295,11 @@ export const independentEventsLesson: Lesson = {
       id: 'tails-even',
       type: 'multiple-choice',
       title: 'Coin and Die',
-      body: 'A fair coin is flipped and a fair die is rolled — independent events. P(Tails) = 1/2, and the even numbers on a die are 2, 4, 6, so P(even) = 3/6 = 1/2.',
+      body: 'A fair coin is flipped and a fair die (faces 1–6) is rolled. The even faces are 2, 4, and 6.',
       prompt: 'What is P(Tails and an even number)?',
       question: {
         inputType: 'multiple-choice',
-        choices: ['1/2', '1/4', '1/6', '3/12'],
+        choices: ['1/2', '1/4', '1/6', '1/3'],
         correctChoiceIndex: 1,
         explanation: 'P(Tails) = 1/2, P(even) = 1/2, so 1/2 × 1/2 = 1/4.',
         misconceptionTags: ['multiply-probabilities'],
@@ -340,35 +335,34 @@ export const independentEventsLesson: Lesson = {
     },
     {
       id: 'spinner',
-      type: 'numeric-question',
+      type: 'fraction-question',
       title: 'Spin Twice',
-      body: 'A spinner lands on red with probability 1/3. You spin it twice, and the spins are independent.',
-      prompt: 'What is P(red on both spins)? Enter the denominator of the fraction.',
+      body: 'A spinner lands on red with probability 1/3. You spin it twice.',
+      prompt: 'What is P(red on both spins)? Enter your answer as a fraction (e.g. 1/9).',
       question: {
-        inputType: 'numeric',
-        correctAnswer: 9,
-        tolerance: 0,
-        explanation: '1/3 × 1/3 = 1/9, so the denominator is 9.',
+        inputType: 'fraction',
+        correctAnswer: '1/9',
+        explanation: '1/3 × 1/3 = 1/9.',
         misconceptionTags: ['multiply-probabilities'],
       },
       feedback: {
         correct: 'Yes — 1/3 × 1/3 = 1/9.',
-        incorrect: 'Multiply the denominators: 3 × 3.',
+        incorrect: 'Multiply the fractions: (1×1)/(3×3) = 1/9.',
         hint: 'The two spins are independent, so the second is still 1/3 no matter what the first did — multiply the per-spin chances and the both-spins result is smaller than a single spin.',
-        computationHint: '1/3 × 1/3 = 1/9, so the denominator is 9.',
+        computationHint: '1/3 × 1/3 = 1/9.',
       },
       randomize: (r) => {
         const m = r.uniqueInt('spin-base', 3, 6)
         const denom = m * m
         return {
-          body: `A spinner lands on red with probability 1/${m}. You spin it twice, and the spins are independent.`,
-          prompt: 'What is P(red on both spins)? Enter the denominator of the fraction.',
-          question: { correctAnswer: denom, explanation: `1/${m} × 1/${m} = 1/${denom}, so the denominator is ${denom}.` },
+          body: `A spinner lands on red with probability 1/${m}. You spin it twice.`,
+          prompt: 'What is P(red on both spins)? Enter your answer as a fraction.',
+          question: { correctAnswer: `1/${denom}`, explanation: `1/${m} × 1/${m} = 1/${denom}.` },
           feedback: {
             correct: `Yes — 1/${m} × 1/${m} = 1/${denom}.`,
-            incorrect: `Multiply the denominators: ${m} × ${m}.`,
+            incorrect: `Multiply the fractions: (1×1)/(${m}×${m}) = 1/${denom}.`,
             hint: 'The two spins are independent, so the second is still the same chance no matter what the first did — multiply the per-spin chances and the both-spins result is smaller than a single spin.',
-            computationHint: `1/${m} × 1/${m} = 1/${denom}, so the denominator is ${denom}.`,
+            computationHint: `1/${m} × 1/${m} = 1/${denom}.`,
           },
         }
       },

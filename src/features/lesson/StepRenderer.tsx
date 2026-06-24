@@ -12,8 +12,12 @@ import { OutcomeSelect } from '../simulation/OutcomeSelect'
 import { CombinationCondense } from '../simulation/CombinationCondense'
 import { CombinedExperiment } from '../simulation/CombinedExperiment'
 import { DependencePairing } from '../simulation/DependencePairing'
+import { ExpectedValueRoller } from '../simulation/ExpectedValueRoller'
+import { ProductGrid } from '../simulation/ProductGrid'
+import { MultisetCondense } from '../simulation/MultisetCondense'
 import { MultipleChoiceStep } from './MultipleChoiceStep'
 import { NumericQuestionStep } from './NumericQuestionStep'
+import { FractionQuestionStep } from './FractionQuestionStep'
 
 export interface StepState {
   answered: boolean
@@ -34,6 +38,9 @@ export interface StepState {
   condenseDone?: boolean
   combinedExpDone?: boolean
   pairingDone?: boolean
+  evSimDone?: boolean
+  productGridDone?: boolean
+  multisetCondenseDone?: boolean
 }
 
 interface StepRendererProps {
@@ -47,9 +54,9 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
     case 'intro':
       return (
         <div>
-          <p className="text-lg leading-relaxed text-slate-700">{step.body}</p>
+          <p className="text-base leading-relaxed text-slate-700 sm:text-lg">{step.body}</p>
           {step.prompt && (
-            <p className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-lg font-semibold text-brand-800">
+            <p className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-base font-semibold text-brand-800 sm:text-lg">
               {step.prompt}
             </p>
           )}
@@ -252,6 +259,65 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
         </div>
       )
 
+    case 'expected-value-sim':
+      return (
+        <div>
+          <p className="mb-4 text-slate-700">{step.body}</p>
+          <ExpectedValueRoller
+            sides={step.expectedValueSimConfig?.sides}
+            onComplete={() => onStepUpdate({ evSimDone: true })}
+          />
+          {!stepState.evSimDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.evSimDone && step.feedback?.correct && (
+            <FeedbackBox variant="neutral" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
+    case 'multiset-condense':
+      return (
+        <div>
+          <p className="mb-4 text-slate-700">{step.body}</p>
+          <MultisetCondense
+            groups={step.multisetCondenseConfig?.groups}
+            onComplete={() => onStepUpdate({ multisetCondenseDone: true })}
+          />
+          {!stepState.multisetCondenseDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.multisetCondenseDone && step.feedback?.correct && (
+            <FeedbackBox variant="neutral" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
+    case 'product-grid':
+      return (
+        <div>
+          <p className="mb-4 text-slate-700">{step.body}</p>
+          {step.productGridConfig && (
+            <ProductGrid
+              rowLabel={step.productGridConfig.rowLabel}
+              colLabel={step.productGridConfig.colLabel}
+              rows={step.productGridConfig.rows}
+              cols={step.productGridConfig.cols}
+              rowEmoji={step.productGridConfig.rowEmoji}
+              colEmoji={step.productGridConfig.colEmoji}
+              pairingLabel={step.productGridConfig.pairingLabel}
+              onComplete={() => onStepUpdate({ productGridDone: true })}
+            />
+          )}
+          {!stepState.productGridDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.productGridDone && step.feedback?.correct && (
+            <FeedbackBox variant="correct" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
     case 'factorial-discovery':
       return (
         <div>
@@ -260,6 +326,7 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
             <FactorialDiscovery
               itemLabel={step.factorialConfig.itemLabel}
               count={step.factorialConfig.count}
+              slots={step.factorialConfig.slots}
               onComplete={() => onStepUpdate({ factorialDone: true })}
             />
           )}
@@ -272,6 +339,7 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
     case 'multiple-choice':
       return step.question ? (
         <div>
+          {step.body && <p className="mb-4 text-slate-700">{step.body}</p>}
           {step.orderingsDisplay && <OrderingsList items={step.orderingsDisplay} />}
           <MultipleChoiceStep
             prompt={step.prompt}
@@ -292,23 +360,43 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
 
     case 'numeric-question':
       return step.question ? (
-        <NumericQuestionStep
-          prompt={step.prompt}
-          question={step.question}
-          feedback={step.feedback}
-          hint={step.feedback?.hint}
-          computationHint={step.feedback?.computationHint}
-          onAnswer={(value, correct) => onStepUpdate({ answered: true, correct, answer: value })}
-          showResult={stepState.answered}
-          lastAnswer={typeof stepState.answer === 'number' ? stepState.answer : null}
-        />
+        <div>
+          {step.body && <p className="mb-4 text-slate-700">{step.body}</p>}
+          <NumericQuestionStep
+            prompt={step.prompt}
+            question={step.question}
+            feedback={step.feedback}
+            hint={step.feedback?.hint}
+            computationHint={step.feedback?.computationHint}
+            onAnswer={(value, correct) => onStepUpdate({ answered: true, correct, answer: value })}
+            showResult={stepState.answered}
+            lastAnswer={typeof stepState.answer === 'number' ? stepState.answer : null}
+          />
+        </div>
+      ) : null
+
+    case 'fraction-question':
+      return step.question ? (
+        <div>
+          {step.body && <p className="mb-4 text-slate-700">{step.body}</p>}
+          <FractionQuestionStep
+            prompt={step.prompt}
+            question={step.question}
+            feedback={step.feedback}
+            hint={step.feedback?.hint}
+            computationHint={step.feedback?.computationHint}
+            onAnswer={(value, correct) => onStepUpdate({ answered: true, correct, answer: value })}
+            showResult={stepState.answered}
+            lastAnswer={typeof stepState.answer === 'string' ? stepState.answer : null}
+          />
+        </div>
       ) : null
 
     case 'completion':
       return (
         <div className="text-center">
-          <div className="mb-4 text-5xl">🎉</div>
-          <p className="text-lg text-slate-700">{step.body}</p>
+          <div className="mb-4 text-4xl sm:text-5xl">🎉</div>
+          <p className="text-base text-slate-700 sm:text-lg">{step.body}</p>
         </div>
       )
 
@@ -343,6 +431,12 @@ export function interactiveDoneState(type: StepType): Partial<StepState> {
       return { combinedExpDone: true }
     case 'dependence-pairing':
       return { pairingDone: true }
+    case 'expected-value-sim':
+      return { evSimDone: true }
+    case 'product-grid':
+      return { productGridDone: true }
+    case 'multiset-condense':
+      return { multisetCondenseDone: true }
     case 'factorial-discovery':
       return { factorialDone: true }
     default:
@@ -375,10 +469,17 @@ export function canAdvance(step: LessonStep, stepState: StepState): boolean {
       return stepState.combinedExpDone === true
     case 'dependence-pairing':
       return stepState.pairingDone === true
+    case 'expected-value-sim':
+      return stepState.evSimDone === true
+    case 'product-grid':
+      return stepState.productGridDone === true
+    case 'multiset-condense':
+      return stepState.multisetCondenseDone === true
     case 'factorial-discovery':
       return stepState.factorialDone === true
     case 'multiple-choice':
     case 'numeric-question':
+    case 'fraction-question':
       return stepState.everCorrect === true
     case 'completion':
       return true

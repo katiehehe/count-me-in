@@ -25,6 +25,26 @@ export const combinationsVsPermutationsLesson: Lesson = {
       nextButtonLabel: 'Show me',
     },
     {
+      id: 'condense-identical',
+      type: 'multiset-condense',
+      title: 'Same Order, Different Count',
+      body: 'Here is the key idea behind combinations, shown with 4 cards: 2 red and 2 blue, numbered 1–4. Step through it yourself: first generate the 24 numbered orderings, then drop the numbers, then draw the arrows that condense the matching ones. Watch how each pattern ends up counted 2! × 2! = 4 times.',
+      multisetCondenseConfig: {
+        groups: [
+          { label: 'Red', color: '#dc2626', count: 2 },
+          { label: 'Blue', color: '#2563eb', count: 2 },
+        ],
+      },
+      feedback: {
+        correct:
+          'Each distinct red/blue pattern came from 2! × 2! = 4 numbered orderings, so 24 ÷ 4 = 6 truly different arrangements. Ignoring order means dividing out those repeats — exactly what combinations do.',
+        incorrect: '',
+        hint: 'Swapping the two reds (or the two blues) does not change how a row looks once the numbers are gone, so each look gets counted several times.',
+        computationHint: '24 ÷ (2! × 2!) = 24 ÷ 4 = 6 distinct arrangements.',
+      },
+      concepts: ['combinations', 'permutation'],
+    },
+    {
       id: 'identify-order',
       type: 'multiple-choice',
       title: 'Does Order Matter?',
@@ -55,21 +75,19 @@ export const combinationsVsPermutationsLesson: Lesson = {
     },
     {
       id: 'permutation-count',
-      type: 'numeric-question',
+      type: 'factorial-discovery',
       title: 'Ordered Selection (nPr)',
-      body: 'For an ordered selection of k from n, multiply the choices: n × (n−1) × … for k stages. You are awarding Gold, Silver, and Bronze medals to 3 of 5 runners — the order (which medal) matters.',
-      prompt: 'How many ways can 3 of 5 runners receive Gold, Silver, and Bronze?',
-      question: {
-        inputType: 'numeric',
-        correctAnswer: 60,
-        tolerance: 0,
-        explanation: '5 × 4 × 3 = 60 ordered ways (this is 5P3).',
-        misconceptionTags: ['nPr'],
+      body: 'You are awarding Gold, Silver, and Bronze medals to 3 of 5 runners — order (which medal) matters. Fill one box per medal: how many runners could take Gold, then how many are left for Silver, then for Bronze.',
+      factorialConfig: {
+        itemLabel: 'runner',
+        count: 5,
+        slots: 3,
       },
       feedback: {
-        correct: 'Yes! 5 × 4 × 3 = 60. That is 5P3, an ordered selection.',
-        incorrect: 'Three medals, in order: 5 choices for Gold, 4 left for Silver, 3 for Bronze.',
-        hint: 'Order matters here, so it is a permutation: award the medals one at a time, and each medal you give out shrinks the pool of remaining runners. Multiply the choices available at each stage.',
+        correct:
+          '5 × 4 × 3 = 60 ordered ways — that is 5P3. Each medal you award leaves one fewer runner for the next.',
+        incorrect: '',
+        hint: 'Order matters, so award the medals one at a time: each medal you give out shrinks the pool of remaining runners. Multiply the choices at each stage.',
         computationHint: '5 choices for Gold × 4 for Silver × 3 for Bronze = 60.',
       },
       concepts: ['permutation', 'counting-principle'],
@@ -96,7 +114,7 @@ export const combinationsVsPermutationsLesson: Lesson = {
       id: 'overcount-idea',
       type: 'numeric-question',
       title: 'From Ordered to Unordered',
-      body: 'You just saw that the same 3 runners can be ordered in 3! = 6 ways, and all 6 are the same team. So among the 60 ordered selections, each unordered team is repeated.',
+      body: 'Picking 3 of 5 runners in order gives 60 ordered selections. Any single team of 3 can be lined up in several different orders.',
       prompt: 'Each unordered team of 3 was counted how many times among the 60 ordered selections? Enter the number.',
       question: {
         inputType: 'numeric',
@@ -117,7 +135,7 @@ export const combinationsVsPermutationsLesson: Lesson = {
       id: 'combination-count',
       type: 'numeric-question',
       title: 'Unordered Selection (nCr)',
-      body: 'To count unordered selections, take the ordered count and divide by k! (the orderings of the chosen group). Picking a team of 3 from 5 runners: ordered count is 5 × 4 × 3 = 60, and each team repeats 3! = 6 times.',
+      body: 'You are choosing a team of 3 from 5 runners, where the order you pick them does not matter.',
       prompt: 'How many different teams of 3 can be chosen from 5 runners (order does not matter)?',
       question: {
         inputType: 'numeric',
@@ -138,7 +156,7 @@ export const combinationsVsPermutationsLesson: Lesson = {
       id: 'committee-ten',
       type: 'numeric-question',
       title: 'The Committee',
-      body: 'General rule: nCr = (n × (n−1) × … for k terms) ÷ k!. You want to choose a 3-person committee from 10 people, and the committee has no ordering.',
+      body: 'You want to choose a 3-person committee from 10 people, where the order you pick them does not matter.',
       prompt: 'How many 3-person committees can be formed from 10 people?',
       question: {
         inputType: 'numeric',
@@ -158,7 +176,7 @@ export const combinationsVsPermutationsLesson: Lesson = {
         const top = fallingValue(n, 3)
         const value = top / 6
         return {
-          body: `General rule: nCr = (n × (n−1) × … for k terms) ÷ k!. You want to choose a 3-person committee from ${n} people, and the committee has no ordering.`,
+          body: `You want to choose a 3-person committee from ${n} people, where the order you pick them does not matter.`,
           prompt: `How many 3-person committees can be formed from ${n} people?`,
           question: { correctAnswer: value, explanation: `${n}C3 = (${fallingProduct(n, 3)}) ÷ 6 = ${top} ÷ 6 = ${value} committees.` },
           feedback: {
@@ -175,7 +193,7 @@ export const combinationsVsPermutationsLesson: Lesson = {
       id: 'pizza-toppings',
       type: 'multiple-choice',
       title: 'Which Is a Combination?',
-      body: 'A combination is an unordered selection; a permutation is ordered.',
+      body: 'Each situation below selects some items; in some the order matters and in some it does not.',
       prompt: 'Which situation is a COMBINATION (order does not matter)?',
       question: {
         inputType: 'multiple-choice',
@@ -275,7 +293,7 @@ export const combinationsVsPermutationsLesson: Lesson = {
       id: 'lineup-4',
       type: 'numeric-question',
       title: 'Lining Up',
-      body: 'Lining 4 people up in a row is an ordered arrangement — each position is different, so this is a permutation, not a combination.',
+      body: 'You line 4 people up in a row, where each position is different and order matters.',
       prompt: 'How many ways can 4 people line up in a row (order matters)?',
       question: {
         inputType: 'numeric',
@@ -294,7 +312,7 @@ export const combinationsVsPermutationsLesson: Lesson = {
         const n = r.uniqueInt('lineup-n', 4, 6)
         const value = factorial(n)
         return {
-          body: `Lining ${n} people up in a row is an ordered arrangement — each position is different, so this is a permutation, not a combination.`,
+          body: `You line ${n} people up in a row, where each position is different and order matters.`,
           prompt: `How many ways can ${n} people line up in a row (order matters)?`,
           question: { correctAnswer: value, explanation: `${n}! = ${descendingProduct(n)} = ${value} orderings.` },
           feedback: {

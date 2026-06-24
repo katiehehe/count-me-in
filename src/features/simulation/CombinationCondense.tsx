@@ -11,11 +11,39 @@ interface CombinationCondenseProps {
 }
 
 interface ArrowLine {
-  x1: number
-  y1: number
-  x2: number
-  y2: number
+  d: string
   len: number
+}
+
+/** Approximate length of a cubic Bézier by sampling — used for the draw-on animation. */
+function cubicLength(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  x3: number,
+  y3: number,
+) {
+  let len = 0
+  let px = x0
+  let py = y0
+  const N = 18
+  for (let i = 1; i <= N; i++) {
+    const t = i / N
+    const mt = 1 - t
+    const a = mt * mt * mt
+    const b = 3 * mt * mt * t
+    const c = 3 * mt * t * t
+    const e = t * t * t
+    const x = a * x0 + b * x1 + c * x2 + e * x3
+    const y = a * y0 + b * y1 + c * y2 + e * y3
+    len += Math.hypot(x - px, y - py)
+    px = x
+    py = y
+  }
+  return len
 }
 
 function Chip({ item }: { item: ConnectionGroupItem }) {
@@ -67,17 +95,23 @@ export function CombinationCondense({
     const cRect = c.getBoundingClientRect()
     const tRect = t.getBoundingClientRect()
     const colRect = col.getBoundingClientRect()
-    const x2 = tRect.left - cRect.left
+    const x2 = tRect.left - cRect.left - 4
     const y2 = tRect.top - cRect.top + tRect.height / 2
-    // Start every arrow from the same vertical line at the right edge of the
-    // left column so they don't stagger with each row's varying width.
-    const x1 = colRect.right - cRect.left + 4
+    // Start every connector from the same vertical line just right of the left
+    // column so they don't stagger with each row's varying width.
+    const x1 = colRect.right - cRect.left + 8
+    const dx = x2 - x1
     const next: ArrowLine[] = []
     for (const row of rowRefs.current) {
       if (!row) continue
       const r = row.getBoundingClientRect()
       const y1 = r.top - cRect.top + r.height / 2
-      next.push({ x1, y1, x2: x2 - 2, y2, len: Math.hypot(x2 - x1, y2 - y1) })
+      // Cubic Bézier with horizontal tangents at both ends → a smooth bundle
+      // that leaves each row level and arrives level into the team card.
+      const c1x = x1 + dx * 0.5
+      const c2x = x2 - dx * 0.5
+      const d = `M ${x1} ${y1} C ${c1x} ${y1}, ${c2x} ${y2}, ${x2} ${y2}`
+      next.push({ d, len: cubicLength(x1, y1, c1x, y1, c2x, y2, x2, y2) })
     }
     setLines(next)
   }, [])
@@ -133,12 +167,10 @@ export function CombinationCondense({
             </marker>
           </defs>
           {lines.map((l, i) => (
-            <line
+            <path
               key={i}
-              x1={l.x1}
-              y1={l.y1}
-              x2={l.x2}
-              y2={l.y2}
+              d={l.d}
+              fill="none"
               stroke="#16a34a"
               strokeWidth={2}
               strokeLinecap="round"
@@ -153,8 +185,8 @@ export function CombinationCondense({
           ))}
         </svg>
 
-        <div className="relative flex items-center gap-3 sm:gap-8">
-          <div ref={leftColRef} className="flex-1 space-y-2">
+        <div className="relative flex items-center justify-between gap-4 sm:gap-6">
+          <div ref={leftColRef} className="shrink-0 space-y-2">
             {perms.map((perm, i) => (
               <div
                 key={i}

@@ -43,7 +43,7 @@ function describeAnswer(step: LessonStep, record: StepAnswerRecord | undefined) 
     const correctIdx = step.question.correctChoiceIndex ?? -1
     userAnswerLabel = step.question.choices[idx] ?? '—'
     correctAnswerLabel = step.question.choices[correctIdx]
-  } else if (step.type === 'numeric-question') {
+  } else if (step.type === 'numeric-question' || step.type === 'fraction-question') {
     userAnswerLabel = firstAnswer !== undefined ? String(firstAnswer) : '—'
     correctAnswerLabel =
       step.question?.correctAnswer !== undefined ? String(step.question.correctAnswer) : undefined
