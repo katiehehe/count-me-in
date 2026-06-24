@@ -43,6 +43,12 @@ export interface LessonProgressDoc {
   gradedTotal?: number
   /** Step ids the learner has starred to revisit; cleared on restart. */
   starredSteps?: string[]
+  /**
+   * Ids of non-graded interactive steps (drag/connect/tree/sim/…) the learner
+   * has completed. Graded steps live in `stepAnswers`; this captures the rest so
+   * resume / backward navigation doesn't force a redo. Cleared on restart.
+   */
+  completedSteps?: string[]
   conceptMastery: Record<string, number>
 }
 

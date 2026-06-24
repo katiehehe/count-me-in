@@ -56,14 +56,6 @@ export function ArrangementBoard({
   const [selected, setSelected] = useState<number | null>(null)
   const [flash, setFlash] = useState<[number, number] | null>(null)
   const completedRef = useRef(false)
-  const ghostRef = useRef<HTMLImageElement | null>(null)
-
-  useEffect(() => {
-    const img = new Image()
-    img.src =
-      'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-    ghostRef.current = img
-  }, [])
 
   const total = targetCount ?? permutationCount(items.length)
   const goal = Math.min(goalCount ?? total, total)
@@ -115,6 +107,59 @@ export function ArrangementBoard({
     }
   }
 
+  // Pointer-based drag works for mouse AND touch (unlike the old HTML5 drag,
+  // which never fired on phones). A movement threshold distinguishes a real
+  // drag from a tap, so the tap-to-swap fallback stays reliable on touch.
+  const movedRef = useRef(false)
+  const startPtRef = useRef<{ x: number; y: number } | null>(null)
+
+  const slotIndexFromPoint = (clientX: number, clientY: number): number | null => {
+    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null
+    const node = el?.closest('[data-slot-index]') as HTMLElement | null
+    if (!node) return null
+    const idx = Number(node.dataset.slotIndex)
+    return Number.isNaN(idx) ? null : idx
+  }
+
+  const handlePointerDown = (index: number) => (e: React.PointerEvent) => {
+    e.preventDefault()
+    movedRef.current = false
+    startPtRef.current = { x: e.clientX, y: e.clientY }
+    setDragIndex(index)
+    setDragOverIndex(index)
+    setSelected(null)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (dragIndex === null) return
+    const start = startPtRef.current
+    if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) {
+      movedRef.current = true
+    }
+    if (movedRef.current) setDragOverIndex(slotIndexFromPoint(e.clientX, e.clientY))
+  }
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (dragIndex === null) return
+    if (movedRef.current) {
+      const target = slotIndexFromPoint(e.clientX, e.clientY)
+      if (target !== null && target !== dragIndex) swap(dragIndex, target)
+      setSelected(null)
+    } else {
+      // No real movement → treat as a tap (select / swap-with-selected).
+      handleSlotActivate(dragIndex)
+    }
+    setDragIndex(null)
+    setDragOverIndex(null)
+    startPtRef.current = null
+  }
+
+  const cancelDrag = () => {
+    setDragIndex(null)
+    setDragOverIndex(null)
+    startPtRef.current = null
+  }
+
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border-2 border-brand-100 bg-brand-50/60 px-4 py-2.5 text-center text-sm font-semibold text-brand-700">
@@ -122,7 +167,12 @@ export function ArrangementBoard({
         {total > goal ? ` (out of ${total} total)` : ''}
       </div>
 
-      <div className="flex flex-nowrap items-end justify-center gap-2 overflow-x-auto px-1 pb-1 sm:gap-3">
+      <div
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={cancelDrag}
+        className="flex touch-none flex-nowrap items-end justify-center gap-2 overflow-x-auto px-1 pb-1 sm:gap-3"
+      >
         {order.map((id, index) => {
           const item = itemMap[id]
           const isDragTarget = dragOverIndex === index && dragIndex !== index
@@ -134,16 +184,7 @@ export function ArrangementBoard({
                 Slot {index + 1}
               </span>
               <div
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  setDragOverIndex(index)
-                }}
-                onDragLeave={() => setDragOverIndex((cur) => (cur === index ? null : cur))}
-                onDrop={() => {
-                  if (dragIndex !== null) swap(dragIndex, index)
-                  setDragIndex(null)
-                  setDragOverIndex(null)
-                }}
+                data-slot-index={index}
                 className={`flex h-24 w-[4.25rem] items-center justify-center rounded-2xl border-2 border-dashed p-1.5 transition-colors sm:h-28 sm:w-24 ${
                   isDragTarget || (selected !== null && selected !== index)
                     ? 'border-brand-400 bg-brand-50'
@@ -152,21 +193,9 @@ export function ArrangementBoard({
               >
                 <button
                   type="button"
-                  draggable
-                  onDragStart={(e) => {
-                    if (ghostRef.current) {
-                      e.dataTransfer.setDragImage(ghostRef.current, 0, 0)
-                    }
-                    e.dataTransfer.effectAllowed = 'move'
-                    setDragIndex(index)
-                    setSelected(null)
-                  }}
-                  onDragEnd={() => {
-                    setDragIndex(null)
-                    setDragOverIndex(null)
-                  }}
-                  onClick={() => handleSlotActivate(index)}
-                  className={`flex h-full w-full cursor-grab flex-col items-center justify-center rounded-xl border-2 shadow-sm transition-[box-shadow,border-color,transform] duration-150 active:cursor-grabbing ${
+                  data-slot-index={index}
+                  onPointerDown={handlePointerDown(index)}
+                  className={`flex h-full w-full cursor-grab touch-none select-none flex-col items-center justify-center rounded-xl border-2 shadow-sm transition-[box-shadow,border-color,transform] duration-150 active:cursor-grabbing ${
                     isSelected
                       ? 'border-brand-500 ring-2 ring-brand-300'
                       : 'border-transparent'

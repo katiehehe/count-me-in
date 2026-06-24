@@ -180,4 +180,13 @@ Verification after round 1: `npx vitest run` → 29 passed / 4 files · `npm run
 
 Verification after Batch A: `npx vitest run` → 31 passed / 5 files · `npm run build` → clean · `npm run lint` → **0 warnings**.
 
-**Still deferred:** #4 interactive-step persistence, #5 ArrangementBoard touch drag, #7 substring restore heuristic, #8 bundle splitting, #10 offline/`getRedirectResult`.
+**Still deferred after Batch A:** #4 interactive-step persistence, #5 ArrangementBoard touch drag, #7 substring restore heuristic, #8 bundle splitting, #10 offline/`getRedirectResult`.
+
+### Round 3 — polish Batch B (DONE, branch `polish-batch-b`)
+- [x] **#5 ArrangementBoard touch drag** — replaced HTML5 drag (mouse-only) with Pointer Events (mouse + touch) mirroring `ConnectionBoard`, with a 6px movement threshold so the tap-to-swap fallback stays reliable. Added `touch-none`/`select-none`.
+- [x] **#4 interactive-step completion persisted** — new `completedSteps[]` on the progress doc, written via `markStepComplete` (arrayUnion + merge, idempotent) on the not-complete→complete transition; restored on load so resume/back-nav never forces a redo.
+- [x] **#7 restore by step type, not substring** — replaced the `stepId.includes(...)` heuristic with `interactiveDoneState(step.type)` (typed inverse of `canAdvance`), guarded by a consistency test.
+
+Verification after Batch B: `npx vitest run` → 36 passed / 6 files · `npm run build` → clean · `npm run lint` → **0 warnings**.
+
+**Still deferred:** #8 bundle splitting, #10 offline/`getRedirectResult` (Batch C).

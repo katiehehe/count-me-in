@@ -1,4 +1,4 @@
-import type { LessonStep } from '../../content/types'
+import type { LessonStep, StepType } from '../../content/types'
 import { FeedbackBox } from '../../components/FeedbackBox'
 import { HintButton } from '../../components/HintButton'
 import { ArrangementBoard } from '../simulation/ArrangementBoard'
@@ -314,6 +314,39 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
 
     default:
       return null
+  }
+}
+
+/**
+ * The completion-flag patch for a non-graded interactive step type — the typed
+ * inverse of {@link canAdvance}'s per-type checks. Used to restore a completed
+ * interactive step from `completedSteps` without guessing from the step id.
+ */
+// eslint-disable-next-line react/only-export-components
+export function interactiveDoneState(type: StepType): Partial<StepState> {
+  switch (type) {
+    case 'arrangement':
+      return { explorationDone: true }
+    case 'connection':
+      return { connectionDone: true }
+    case 'tree':
+      return { treeDone: true }
+    case 'simulation':
+      return { simulationDone: true }
+    case 'probability':
+      return { probabilityDone: true }
+    case 'outcome-select':
+      return { outcomeSelectDone: true }
+    case 'condensing':
+      return { condenseDone: true }
+    case 'combined-experiment':
+      return { combinedExpDone: true }
+    case 'dependence-pairing':
+      return { pairingDone: true }
+    case 'factorial-discovery':
+      return { factorialDone: true }
+    default:
+      return {}
   }
 }
 

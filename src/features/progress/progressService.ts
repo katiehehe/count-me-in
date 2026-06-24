@@ -1,4 +1,5 @@
 import {
+  arrayUnion,
   collection,
   doc,
   getDoc,
@@ -170,10 +171,24 @@ export async function restartLesson(uid: string, lessonId: string, seed?: number
     currentStepIndex: 0,
     stepAnswers: {},
     starredSteps: [],
+    completedSteps: [],
     // Persist the reshuffled seed so the fresh play-through is reproducible on
     // any device, not just the browser that pressed Restart.
     ...(seed !== undefined ? { seed } : {}),
   })
+}
+
+/**
+ * Marks a non-graded interactive step as completed. Uses arrayUnion + merge so
+ * it is idempotent, never clobbers other fields, and works even before the
+ * progress doc exists.
+ */
+export async function markStepComplete(uid: string, lessonId: string, stepId: string) {
+  await setDoc(
+    lessonProgressRef(uid, lessonId),
+    { lessonId, completedSteps: arrayUnion(stepId), updatedAt: serverTimestamp() },
+    { merge: true },
+  )
 }
 
 export async function advanceStep(uid: string, lessonId: string, stepIndex: number) {

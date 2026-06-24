@@ -18,11 +18,30 @@ vi.mock('firebase/firestore', () => {
     exists: () => data !== undefined,
     data: () => (data === undefined ? undefined : structuredClone(data)),
   })
+  // Resolves field-value sentinels (e.g. arrayUnion) while merging `data` into
+  // `target`, mirroring Firestore's field-level merge semantics.
+  const resolveOps = (
+    target: Record<string, unknown>,
+    data: Record<string, unknown>,
+  ): Record<string, unknown> => {
+    const out = { ...target }
+    for (const [k, v] of Object.entries(data)) {
+      if (v && typeof v === 'object' && (v as { __op?: string }).__op === 'arrayUnion') {
+        const els = (v as { els: unknown[] }).els
+        const cur = Array.isArray(out[k]) ? (out[k] as unknown[]) : []
+        out[k] = Array.from(new Set([...cur, ...els]))
+      } else {
+        out[k] = v
+      }
+    }
+    return out
+  }
   return {
     doc: (_db: unknown, ...segs: string[]) => refFor(...segs),
     collection: (_db: unknown, ...segs: string[]) => refFor(...segs),
     serverTimestamp: () => '__serverTimestamp__',
     Timestamp: { now: () => ({ __ts: 1 }) },
+    arrayUnion: (...els: unknown[]) => ({ __op: 'arrayUnion', els }),
     getDoc: async (ref: { path: string }) => {
       // Capture the snapshot at call time so a delayed read returns *stale* data.
       const captured = h.store.has(ref.path)
@@ -38,13 +57,18 @@ vi.mock('firebase/firestore', () => {
         .map(([, v]) => ({ data: () => structuredClone(v) }))
       return { docs }
     },
-    setDoc: async (ref: { path: string }, data: Record<string, unknown>) => {
-      h.store.set(ref.path, structuredClone(data))
+    setDoc: async (
+      ref: { path: string },
+      data: Record<string, unknown>,
+      options?: { merge?: boolean },
+    ) => {
+      const base = options?.merge ? h.store.get(ref.path) ?? {} : {}
+      h.store.set(ref.path, resolveOps(base, structuredClone(data)))
       h.writeLog.push({ path: ref.path, op: 'set', data: structuredClone(data) })
     },
     updateDoc: async (ref: { path: string }, data: Record<string, unknown>) => {
       const cur = h.store.get(ref.path) ?? {}
-      h.store.set(ref.path, { ...cur, ...structuredClone(data) })
+      h.store.set(ref.path, resolveOps(cur, structuredClone(data)))
       h.writeLog.push({ path: ref.path, op: 'update', data: structuredClone(data) })
     },
     runTransaction: async (
@@ -76,6 +100,7 @@ vi.mock('firebase/firestore', () => {
 import {
   advanceStep,
   getLessonProgress,
+  markStepComplete,
   recordStepAnswer,
   restartLesson,
   saveLessonProgress,
@@ -176,5 +201,32 @@ describe('seed persistence (Bug #2)', () => {
     expect(doc?.seed).toBe(222)
     expect(doc?.stepAnswers).toEqual({})
     expect(doc?.currentStepIndex).toBe(0)
+  })
+})
+
+describe('interactive step completion (Bug #4)', () => {
+  it('markStepComplete accumulates ids idempotently', async () => {
+    await markStepComplete('u1', 'L', 'explore-three')
+    await markStepComplete('u1', 'L', 'connect-outfits')
+    await markStepComplete('u1', 'L', 'explore-three') // duplicate
+
+    const doc = await getLessonProgress('u1', 'L')
+    expect(doc?.completedSteps).toEqual(['explore-three', 'connect-outfits'])
+  })
+
+  it('markStepComplete does not clobber existing answers', async () => {
+    await recordStepAnswer('u1', 'L', 'q1', 7, true)
+    await markStepComplete('u1', 'L', 'explore-three')
+
+    const doc = await getLessonProgress('u1', 'L')
+    expect(doc?.completedSteps).toEqual(['explore-three'])
+    expect(doc?.stepAnswers?.q1?.answer).toBe(7)
+  })
+
+  it('restartLesson clears completedSteps', async () => {
+    await markStepComplete('u1', 'L', 'explore-three')
+    await restartLesson('u1', 'L', 5)
+    const doc = await getLessonProgress('u1', 'L')
+    expect(doc?.completedSteps).toEqual([])
   })
 })

@@ -6,7 +6,7 @@ import { loadOrCreateSeed, refreshSeed, resolveLesson, storeSeed } from '../../c
 import { SegmentedProgress } from '../../components/SegmentedProgress'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
-import { StepRenderer, canAdvance, type StepState } from './StepRenderer'
+import { StepRenderer, canAdvance, interactiveDoneState, type StepState } from './StepRenderer'
 import { LessonReview } from './LessonReview'
 import type { LessonProgressDoc } from '../../firebase/firestoreTypes'
 import { useAuth } from '../auth/AuthProvider'
@@ -15,6 +15,7 @@ import {
   completeLesson,
   getLessonProgress,
   recordStepAnswer,
+  markStepComplete,
   recordLearningActivity,
   restartLesson,
   saveLessonProgress,
@@ -48,6 +49,11 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   const seedRef = useRef(seed)
   seedRef.current = seed
   const lesson = useMemo(() => resolveLesson(rawLesson, seed), [rawLesson, seed])
+  // Step ids/types are stable across seed changes (only the numbers differ), so
+  // the one-shot load effect reads them via a ref instead of depending on the
+  // re-resolved array (which would otherwise re-trigger the fetch on seed swap).
+  const stepsRef = useRef(lesson.steps)
+  stepsRef.current = lesson.steps
   const [stepIndex, setStepIndex] = useState(0)
   const [furthestIndex, setFurthestIndex] = useState(0)
   const [stepStates, setStepStates] = useState<Record<string, StepState>>({})
@@ -59,13 +65,21 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   // True while stepping through a completed lesson's questions from the results
   // summary. Graded questions then render blank (not pre-filled) for consistency.
   const [reviewWalkthrough, setReviewWalkthrough] = useState(false)
+  // Ephemeral answers given DURING a review walkthrough. Kept completely separate
+  // from `stepStates` so re-answering in review never persists to Firestore nor
+  // affects the learner's summarized results (mastery, concept scores, etc.).
+  const [reviewStepStates, setReviewStepStates] = useState<Record<string, StepState>>({})
 
   const step = lesson.steps[stepIndex]
   const stepState = stepStates[step.id] ?? defaultStepState
-  // In a review walkthrough, show graded questions blank so multiple-choice and
-  // numeric questions look the same; the real state still drives Continue/Enter.
-  const displayStepState =
-    reviewWalkthrough && isGradedStepType(step.type) ? defaultStepState : stepState
+  // The state that actually drives the UI for the current step. In a review
+  // walkthrough we use the ephemeral review state: graded questions start blank
+  // (so they can be re-answered), while non-graded interactive steps fall back to
+  // the learner's real (already-complete) state so Continue works without a redo.
+  const activeStepState = reviewWalkthrough
+    ? (reviewStepStates[step.id] ?? (isGradedStepType(step.type) ? defaultStepState : stepState))
+    : stepState
+  const displayStepState = activeStepState
 
   // Whole-lesson mastery: fraction of graded questions answered correctly on the
   // first attempt. Recomputed live from step state (and restored on resume).
@@ -109,9 +123,11 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
         setReviewing(progress.completed)
         setStarredSteps(progress.starredSteps ?? [])
 
-        // Always restore saved answers (even for completed lessons) so that
-        // jumping back to a previous question via the progress bar shows what
-        // the learner entered.
+        // Always restore saved state (even for completed lessons) so that
+        // jumping back to a previous step via the progress bar shows what the
+        // learner did. Graded answers come from `stepAnswers`; non-graded
+        // interactive completions come from `completedSteps` and are mapped back
+        // to their done-flag by step TYPE (not by guessing from the step id).
         const restored: Record<string, StepState> = {}
         for (const [stepId, record] of Object.entries(progress.stepAnswers ?? {})) {
           const numericAnswer = typeof record.answer === 'number' ? record.answer : null
@@ -122,16 +138,15 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
             selectedIndex: numericAnswer,
             firstTry: record.firstAttemptCorrect ?? record.correct,
             everCorrect: record.correct === true,
-            explorationDone: stepId.includes('explore'),
-            factorialDone: stepId.includes('factorial'),
-            connectionDone: stepId.includes('connect'),
-            treeDone: stepId.includes('tree'),
-            simulationDone: stepId.includes('sim'),
-            probabilityDone: stepId.includes('gamble'),
-            outcomeSelectDone: stepId.includes('pick'),
-            condenseDone: stepId.includes('condense'),
-            combinedExpDone: stepId.includes('combined'),
-            pairingDone: stepId.includes('depend'),
+          }
+        }
+        for (const stepId of progress.completedSteps ?? []) {
+          const completedStep = stepsRef.current.find((s) => s.id === stepId)
+          if (!completedStep) continue
+          restored[stepId] = {
+            ...(restored[stepId] ?? defaultStepState),
+            answered: true,
+            ...interactiveDoneState(completedStep.type),
           }
         }
         setStepStates(restored)
@@ -209,6 +224,17 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   )
 
   const handleStepUpdate = (update: Partial<StepState>) => {
+    // Review walkthrough: keep answers purely local and ephemeral. Never persist
+    // and never touch mastery — this is a viewing/answering mode only.
+    if (reviewWalkthrough) {
+      setReviewStepStates((prev) => {
+        const base = prev[step.id] ?? defaultStepState
+        const everCorrectUpdate = update.correct === true ? { everCorrect: true } : {}
+        return { ...prev, [step.id]: { ...base, ...update, ...everCorrectUpdate } }
+      })
+      return
+    }
+
     const isGradedAnswer =
       update.answered === true && update.correct !== undefined && update.correct !== null
 
@@ -237,6 +263,18 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
         update.correct as boolean,
         step.question?.misconceptionTags ?? [],
       )
+    }
+
+    // Persist non-graded interactive completion the moment the step becomes
+    // satisfiable, so resume / backward navigation never forces a redo. Fire
+    // once per step (only on the not-complete → complete transition).
+    if (
+      user &&
+      !isGradedStepType(step.type) &&
+      !canAdvance(step, stepState) &&
+      canAdvance(step, { ...stepState, ...update })
+    ) {
+      pendingWrites.current.push(markStepComplete(user.uid, lesson.id, step.id))
     }
   }
 
@@ -311,6 +349,7 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
     if (idx < 0 || idx >= lesson.steps.length) return
     setFurthestIndex((prev) => Math.max(prev, idx))
     setStepIndex(idx)
+    setReviewStepStates({})
     setReviewWalkthrough(true)
     setReviewing(false)
   }
@@ -324,6 +363,7 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
     const lastAnswered = answeredIndices.length ? Math.max(...answeredIndices) : 0
     setFurthestIndex(lesson.steps.length - 1)
     setStepIndex(lastAnswered)
+    setReviewStepStates({})
     setReviewWalkthrough(true)
     setReviewing(false)
   }
@@ -335,8 +375,11 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
     setStepStates({})
     setStarredSteps([])
     setProgressDoc((prev) =>
-      prev ? { ...prev, stepAnswers: {}, starredSteps: [], currentStepIndex: 0 } : prev,
+      prev
+        ? { ...prev, stepAnswers: {}, starredSteps: [], completedSteps: [], currentStepIndex: 0 }
+        : prev,
     )
+    activityRecordedRef.current = false
     setStepIndex(0)
     setFurthestIndex(0)
     setReviewWalkthrough(false)
@@ -349,7 +392,7 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   const tryAdvanceRef = useRef<() => boolean>(() => false)
   tryAdvanceRef.current = () => {
     if (reviewing || loading) return false
-    if (canAdvance(step, stepState)) {
+    if (canAdvance(step, activeStepState)) {
       void handleNext()
       return true
     }
@@ -358,8 +401,8 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
 
   // Snapshot of step/state each render, so the Enter listener can read the values that
   // were true *before* the current keystroke graded an answer.
-  const enterStateRef = useRef({ step, stepState, reviewing, loading })
-  enterStateRef.current = { step, stepState, reviewing, loading }
+  const enterStateRef = useRef({ step, stepState: activeStepState, reviewing, loading })
+  enterStateRef.current = { step, stepState: activeStepState, reviewing, loading }
   // Whether the step was already advancible when Enter went down. This stops a single
   // Enter from both checking a correct answer and skipping straight past its feedback.
   const advancibleAtKeydownRef = useRef(false)
@@ -448,7 +491,7 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
 
   const isCompletion = step.type === 'completion'
   // Dev mode can click straight through any step without satisfying it.
-  const canGoNext = canAdvance(step, stepState) || isDevUnlock()
+  const canGoNext = canAdvance(step, activeStepState) || isDevUnlock()
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
