@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthProvider'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
@@ -8,6 +8,7 @@ export function LoginPage() {
   const { user, loading, firebaseConfigured, authError, signInWithGoogle, signInAnonymously } =
     useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const [error, setError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
 
@@ -21,7 +22,11 @@ export function LoginPage() {
     )
   }
 
-  if (user) return <Navigate to={from} replace />
+  // Real (non-anonymous) users are already signed in, so bounce them away. But
+  // anonymous demo guests must be able to reach this page to upgrade to a real
+  // account — otherwise the "Sign in to save your progress" banner just loops
+  // them straight back.
+  if (user && !user.isAnonymous) return <Navigate to={from} replace />
 
   const handleGoogle = async () => {
     setSigningIn(true)
@@ -39,6 +44,10 @@ export function LoginPage() {
     setError('')
     try {
       await signInAnonymously()
+      // Already-anonymous guests who arrived here from the demo banner stay
+      // anonymous, so the redirect guard never fires — navigate explicitly so the
+      // demo button always takes them into the app.
+      navigate(from, { replace: true })
     } catch {
       setError('Sign-in failed. Check your Firebase configuration.')
     }

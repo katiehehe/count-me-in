@@ -6,6 +6,9 @@ export function Layout() {
   const { user, profile, signOut } = useAuth()
   const location = useLocation()
   const isLesson = location.pathname.startsWith('/lesson/')
+  // Demo-mode banner is for guests actively using the app — not on the login page
+  // they're being sent to, where it'd be redundant.
+  const showDemoBanner = !!user?.isAnonymous && location.pathname !== '/login'
 
   const rawName = profile?.displayName ?? user?.displayName ?? ''
   const firstName = rawName && rawName !== 'Learner' ? rawName.split(' ')[0] : ''
@@ -70,7 +73,7 @@ export function Layout() {
         </div>
       </header>
 
-      {user?.isAnonymous && (
+      {showDemoBanner && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm text-amber-800">
           Demo mode — your progress won&apos;t be saved and will be lost if you refresh.{' '}
           <Link to="/login" className="font-semibold underline underline-offset-2 hover:text-amber-900">
