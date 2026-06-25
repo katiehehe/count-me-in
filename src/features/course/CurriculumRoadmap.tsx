@@ -27,7 +27,7 @@ function ZoneTile({ unit }: { unit: UnitVM }) {
         </span>
       </div>
 
-      <h3 className="text-[12.5px] font-semibold leading-tight tracking-tight text-slate-700">
+      <h3 className="text-sm font-semibold leading-tight tracking-tight text-slate-700">
         {unit.title}
       </h3>
 

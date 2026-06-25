@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { course, getLessonIndex } from '../../content/course'
-import { getAllLessonProgress } from '../progress/progressService'
+import { getAllLessonProgress } from '../progress/progressStore'
 import type { LessonProgressDoc } from '../../firebase/firestoreTypes'
 import { isLessonMastered } from '../progress/mastery'
 

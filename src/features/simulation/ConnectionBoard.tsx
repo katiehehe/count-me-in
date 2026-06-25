@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ConnectionGroupItem } from '../../content/types'
-import { TokenIcon } from '../../components/icons/TokenIcon'
-import { hasTokenIcon } from '../../components/icons/tokenIconUtils'
+import { EventIcon } from '../../components/icons/EventIcon'
+import { hasEventIcon } from '../../components/icons/tokenIconUtils'
 
 interface ConnectionBoardProps {
   leftLabel: string
@@ -212,8 +212,8 @@ export function ConnectionBoard({
               borderColor: isSelected ? '#2d5894' : item.color,
             }}
           >
-            {hasTokenIcon(item.emoji) ? (
-              <TokenIcon
+            {hasEventIcon(item.emoji) ? (
+              <EventIcon
                 emoji={item.emoji}
                 label={item.label}
                 color={item.color}

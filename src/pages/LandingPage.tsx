@@ -32,9 +32,9 @@ export function LandingPage() {
   const { user } = useAuth()
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
+    <div className="animate-fade-up mx-auto max-w-4xl px-4 py-8 sm:py-12">
       {/* ---- Workbook cover ---- */}
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white/85 shadow-soft backdrop-blur-sm">
         <div className="flex h-1" aria-hidden>
           {ZONE_BARS.map((c) => (
             <div key={c} className={`flex-1 ${c}`} />
@@ -42,28 +42,28 @@ export function LandingPage() {
         </div>
         <div className="bg-grid">
           <div className="px-5 py-8 sm:px-10 sm:py-12">
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">
+            <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-slate-400 sm:text-sm">
               A problem-first course · Vol. 1
             </p>
-            <h1 className="mt-4 max-w-2xl font-serif text-[3.6rem] font-semibold leading-[1.04] tracking-tight text-slate-900 sm:text-[5.4rem]">
+            <h1 className="text-h1 mt-4 max-w-4xl">
               Learn math by{' '}
               <span className="bg-gradient-to-r from-lavender-600 to-accent-500 bg-clip-text italic text-transparent">
                 doing
               </span>
-              , not watching.
+              ,<br className="hidden sm:block" /> not watching.
             </h1>
-            <p className="mt-4 max-w-xl text-base text-slate-600 sm:text-lg">
+            <p className="mt-5 max-w-2xl text-lg text-slate-600 sm:text-xl">
               Count Me In teaches counting &amp; probability through problems you solve by hand —
               arrange, roll, and reason your way to the intuition before the formulas.
             </p>
 
-            <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
               {STAGES.map((s, i) => (
                 <span key={s.label} className="flex items-center gap-2">
-                  <span className={`font-mono text-xs font-bold ${s.num}`}>
+                  <span className={`font-mono text-sm font-bold sm:text-base ${s.num}`}>
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  <span className="text-sm font-medium text-slate-700">{s.label}</span>
+                  <span className="text-base font-medium text-slate-700 sm:text-lg">{s.label}</span>
                   {i < STAGES.length - 1 && (
                     <span className="ml-1 text-slate-300" aria-hidden>
                       ·
@@ -113,14 +113,12 @@ export function LandingPage() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-serif text-xl font-semibold tracking-tight text-slate-900">
-                      {unit.title}
-                    </h3>
+                    <h3 className="text-h4">{unit.title}</h3>
                     <span className={theme.text}>
                       <ZoneIcon accent={unit.accent} className="h-4 w-4" />
                     </span>
                   </div>
-                  <p className="mt-0.5 line-clamp-2 text-[13px] text-slate-500">{unit.description}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">{unit.description}</p>
                   <span className="mt-1.5 block font-mono text-[10.5px] font-semibold uppercase tracking-wide text-slate-400">
                     {realCount > 0 ? `${realCount} lesson${realCount !== 1 ? 's' : ''}` : 'Coming soon'}
                   </span>
@@ -133,16 +131,14 @@ export function LandingPage() {
 
       {/* ---- Sample problem + mastery preview ---- */}
       <section className="mt-8 grid gap-3 lg:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-soft lg:col-span-2">
+        <div className="rounded-xl border border-slate-200 bg-white/85 p-5 shadow-soft backdrop-blur-sm lg:col-span-2">
           <div className="mb-2 flex items-baseline justify-between border-b border-slate-200 pb-2">
             <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-lavender-600">
               Problem 01
             </h2>
             <span className="font-mono text-[11px] font-semibold text-slate-400">Try it now</span>
           </div>
-          <h3 className="font-serif text-lg font-semibold tracking-tight text-slate-900">
-            Three trophies, one shelf
-          </h3>
+          <h3 className="text-h4">Three trophies, one shelf</h3>
           <p className="mt-0.5 text-sm text-slate-500">
             How many distinct orderings can you find? Tap to arrange them.
           </p>
@@ -151,7 +147,7 @@ export function LandingPage() {
           </div>
         </div>
 
-        <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+        <div className="flex flex-col rounded-xl border border-slate-200 bg-white/85 p-5 shadow-soft backdrop-blur-sm">
           <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Track mastery
           </h2>

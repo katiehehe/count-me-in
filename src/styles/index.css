@@ -84,15 +84,99 @@
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   /* Editorial serif for headings — academic, mathematical, magazine-like. */
   --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+
+  /* ---- Typographic scale ----------------------------------------------
+     A refined editorial hierarchy (not a uniform scale-up). Each step pairs
+     a size with a deliberate line-height: tight for headings, comfortable
+     for body, readable for hints. Sizes in rem (16px base).
+       xs   13px  micro-labels / eyebrows (mono, uppercase)
+       sm   15px  helper / hint text (never the main body)
+       base 17px  body copy
+       lg   19px  lead paragraphs / large body
+       xl   22px  card titles
+       2xl  26px  large card titles
+       3xl  30px  small section headings
+       4xl  36px  section headings / mobile hero
+       5xl  44px  large mobile hero
+       6xl  56px  desktop hero (low)
+       7xl  72px  desktop hero (high)                                     */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.55;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.65;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.6;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.3;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 1.2;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 1.15;
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: 1.12;
+  --text-5xl: 2.75rem;
+  --text-5xl--line-height: 1.08;
+  --text-6xl: 3.5rem;
+  --text-6xl--line-height: 1.05;
+  --text-7xl: 4.5rem;
+  --text-7xl--line-height: 1.03;
+}
+
+@layer components {
+  /* ---- Heading system -------------------------------------------------
+     A consistent, editorial heading scale. Major headings (h1–h4) use the
+     serif face with tight line-heights and slight negative tracking; the
+     small label heading (h5) stays sans for UI clarity. Sizes are fluid via
+     clamp() so they read large on desktop and comfortable on mobile.
+       h1  hero title           40–72px
+       h2  page section title   30–48px
+       h3  card / lesson title  24–32px
+       h4  subsection title     21px
+       h5  small label heading  18px                                     */
+  .text-h1 {
+    @apply font-serif font-semibold text-slate-900;
+    font-size: clamp(2.75rem, 6vw, 4.5rem);
+    line-height: 1.06;
+    letter-spacing: -0.021em;
+  }
+  .text-h2 {
+    @apply font-serif font-semibold text-slate-900;
+    font-size: clamp(1.875rem, 4vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: -0.018em;
+  }
+  .text-h3 {
+    @apply font-serif font-semibold text-slate-900;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    line-height: 1.15;
+    letter-spacing: -0.012em;
+  }
+  .text-h4 {
+    @apply font-serif font-semibold text-slate-900;
+    font-size: 1.3125rem;
+    line-height: 1.2;
+    letter-spacing: -0.006em;
+  }
+  .text-h5 {
+    @apply font-sans font-semibold text-slate-900;
+    font-size: 1.125rem;
+    line-height: 1.25;
+  }
 }
 
 @layer base {
   html {
     @apply antialiased;
+    /* Disable the scroll rubber-band entirely so there's no overscroll region to
+       color-match at the top/bottom. */
+    overscroll-behavior-y: none;
+    background-color: #eef3f9;
   }
 
   body {
-    @apply text-slate-800 font-sans min-h-screen;
+    @apply text-slate-800 font-sans min-h-screen text-base;
     background:
       radial-gradient(48rem 48rem at 100% -8%, #d8e3f0 0%, transparent 52%),
       radial-gradient(42rem 42rem at -8% 4%, #e2eefb 0%, transparent 48%),
@@ -142,6 +226,51 @@
   input[type='number'] {
     -moz-appearance: textfield;
     appearance: textfield;
+  }
+
+  /* Step-to-step transition: a soft fade + horizontal slide so moving
+     between questions feels continuous. Direction-aware (forward slides in
+     from the right, back from the left). */
+  @keyframes step-in-forward {
+    from {
+      opacity: 0;
+      transform: translateX(1.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes step-in-back {
+    from {
+      opacity: 0;
+      transform: translateX(-1.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .animate-step-forward {
+    animation: step-in-forward 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-step-back {
+    animation: step-in-back 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Generic gentle fade-up for cards/sections entering the view. */
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .animate-fade-up {
+    animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   /* Decision-tree branch reveal animation (CombinationTree). */
@@ -256,6 +385,9 @@
 
   @media (prefers-reduced-motion: reduce) {
     .branch-in,
+    .animate-step-forward,
+    .animate-step-back,
+    .animate-fade-up,
     .tree-branch::before,
     .tree-leaf::before,
     .tree-leaf::after {

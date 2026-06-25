@@ -54,9 +54,9 @@ export function CoursePage() {
   return (
     <div>
       <DisplayNamePrompt />
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:py-8">
+      <div className="animate-fade-up mx-auto max-w-4xl px-4 py-6 sm:py-8">
         {/* ---- Workbook-cover header ---- */}
-        <header className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+        <header className="overflow-hidden rounded-xl border border-slate-200 bg-white/85 shadow-soft backdrop-blur-sm">
           {/* four-zone spine */}
           <div className="flex h-1" aria-hidden>
             {ZONE_BARS.map((c) => (
@@ -67,7 +67,7 @@ export function CoursePage() {
           <div className="bg-grid">
             <div className="px-5 py-6 sm:px-8 sm:py-8">
               <div className="flex items-center justify-between">
-                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">
+                <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-slate-400 sm:text-sm">
                   Course Guide · Vol. 1
                 </p>
                 {firstName && (
@@ -77,22 +77,20 @@ export function CoursePage() {
                 )}
               </div>
 
-              <h1 className="mt-3 font-serif text-[3.6rem] font-semibold tracking-tight text-slate-900 sm:text-[4.5rem] sm:leading-[1.02]">
-                Counting &amp; Probability
-              </h1>
-              <p className="mt-3 max-w-xl text-base text-slate-600 sm:text-lg">
+              <h1 className="text-h1 mt-3">Counting &amp; Probability</h1>
+              <p className="mt-3 max-w-2xl text-lg text-slate-600 sm:text-xl">
                 A problem-first path from counting outcomes to probability, expectation, and
                 contest-style strategy.
               </p>
 
               {/* numbered progression */}
-              <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
                 {STAGES.map((s, i) => (
                   <span key={s.label} className="flex items-center gap-2">
-                    <span className={`font-mono text-xs font-bold ${s.num}`}>
+                    <span className={`font-mono text-sm font-bold sm:text-base ${s.num}`}>
                       {String(i + 1).padStart(2, '0')}
                     </span>
-                    <span className="text-sm font-medium text-slate-700">{s.label}</span>
+                    <span className="text-base font-medium text-slate-700 sm:text-lg">{s.label}</span>
                     {i < STAGES.length - 1 && (
                       <span className="ml-1 text-slate-300" aria-hidden>
                         ·

@@ -13,7 +13,7 @@ export function UnitSection({ unit }: { unit: UnitVM }) {
 
   return (
     <section id={`unit-${unit.id}`} className="scroll-mt-24">
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+      <div className={`overflow-hidden rounded-xl border ${theme.border} ${theme.soft} shadow-soft`}>
         {/* thin accent rule ties the chapter to its zone color */}
         <div className={`h-1 ${theme.fill}`} aria-hidden />
 
@@ -31,9 +31,7 @@ export function UnitSection({ unit }: { unit: UnitVM }) {
           <span className={`hidden h-10 w-px bg-slate-200 sm:block`} aria-hidden />
 
           <div className="min-w-0 flex-1">
-            <h3 className="font-serif text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.7rem]">
-              {unit.title}
-            </h3>
+            <h3 className="text-h3">{unit.title}</h3>
             <p className="mt-1 max-w-xl text-sm text-slate-500">{unit.description}</p>
           </div>
 

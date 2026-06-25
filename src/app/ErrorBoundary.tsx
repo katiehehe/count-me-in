@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-4 text-center">
-          <h1 className="text-xl font-bold text-slate-900">Something went wrong</h1>
+          <h1 className="text-h3">Something went wrong</h1>
           <p className="mt-2 text-sm text-slate-600">
             The app hit an unexpected error. Reloading usually fixes it.
           </p>

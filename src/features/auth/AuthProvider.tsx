@@ -8,8 +8,11 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  browserLocalPersistence,
   getRedirectResult,
+  inMemoryPersistence,
   onAuthStateChanged,
+  setPersistence,
   signInAnonymously,
   signInWithPopup,
   signInWithRedirect,
@@ -18,7 +21,12 @@ import {
   type User,
 } from 'firebase/auth'
 import { getFirebaseAuth, isFirebaseConfigured } from '../../firebase/firebaseClient'
-import { ensureUserProfile, getUserProfile, updateDisplayName } from '../progress/progressService'
+import {
+  clearDemoUser,
+  ensureUserProfile,
+  getUserProfile,
+  updateDisplayName,
+} from '../progress/progressStore'
 import type { UserProfile } from '../../firebase/firestoreTypes'
 
 interface AuthContextValue {
@@ -89,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const auth = getFirebaseAuth()
     const provider = new GoogleAuthProvider()
+    // Real accounts persist across reloads/tabs so learners can resume.
+    await setPersistence(auth, browserLocalPersistence)
     try {
       await signInWithPopup(auth, provider)
     } catch (err) {
@@ -110,11 +120,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInAnonymouslyFn = useCallback(async () => {
     const auth = getFirebaseAuth()
+    // Demo sessions are intentionally ephemeral: in-memory persistence means the
+    // anonymous account lives only for this tab and is gone on reload or close —
+    // so a refresh drops the guest back to the login screen and nothing is saved.
+    await setPersistence(auth, inMemoryPersistence)
     await signInAnonymously(auth)
   }, [])
 
   const signOut = useCallback(async () => {
     const auth = getFirebaseAuth()
+    // Drop any in-memory demo progress so a guest never leaves a trace.
+    const current = auth.currentUser
+    if (current?.isAnonymous) clearDemoUser(current.uid)
     await firebaseSignOut(auth)
   }, [])
 
@@ -123,7 +140,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user) return
       await updateDisplayName(user.uid, name)
       const p = await getUserProfile(user.uid)
-      setProfile(p)
+      // Demo profiles are mutated in place and returned by reference, so spread
+      // into a new object — otherwise React's Object.is bailout skips the
+      // re-render and the name-prompt never updates/dismisses.
+      setProfile(p ? { ...p } : null)
     },
     [user],
   )
@@ -131,7 +151,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = useCallback(async () => {
     if (!user) return
     const p = await getUserProfile(user.uid)
-    setProfile(p)
+    // Clone for the same reason as setDisplayName: the demo store returns the
+    // profile by reference, so a fresh object is required for React to re-render
+    // (e.g. so the header streak count updates after finishing a lesson).
+    setProfile(p ? { ...p } : null)
   }, [user])
 
   const value = useMemo(

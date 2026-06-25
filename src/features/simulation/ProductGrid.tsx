@@ -13,10 +13,11 @@ interface ProductGridProps {
   onComplete?: () => void
 }
 
-// Distinct hues so every row item and every column item is its own color, and
-// the two stages read as clearly different palettes (cool rows, warm columns).
-const ROW_COLORS = ['#2563eb', '#0ea5e9', '#6366f1', '#8b5cf6', '#0d9488', '#0891b2']
-const COL_COLORS = ['#ea580c', '#16a34a', '#db2777', '#ca8a04', '#dc2626', '#7c3aed']
+// Distinct hues so every row item and every column item is its own color. The
+// two stages draw from clearly different parts of the spectrum so rows and
+// columns never look alike.
+const ROW_COLORS = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2']
+const COL_COLORS = ['#db2777', '#ea580c', '#0d9488', '#ca8a04', '#4f46e5', '#65a30d']
 
 function Glyph({
   emoji,

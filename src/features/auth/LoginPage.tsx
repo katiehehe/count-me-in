@@ -49,7 +49,7 @@ export function LoginPage() {
     return (
       <div className="mx-auto max-w-md px-4 py-16">
         <Card>
-          <h1 className="text-xl font-bold">Firebase not configured</h1>
+          <h1 className="text-h3">Firebase not configured</h1>
           <p className="mt-2 text-sm text-slate-600">
             Copy <code className="rounded bg-slate-100 px-1">.env.example</code> to{' '}
             <code className="rounded bg-slate-100 px-1">.env</code> and add your Firebase project credentials.
@@ -62,7 +62,7 @@ export function LoginPage() {
   return (
     <div className="mx-auto max-w-md px-4 py-16">
       <div className="mb-8 text-center">
-        <h1 className="text-2xl font-bold text-slate-900">Welcome to Count Me In</h1>
+        <h1 className="text-h2">Welcome to Count Me In</h1>
         <p className="mt-2 text-slate-600">Sign in to save your progress and streaks.</p>
       </div>
 

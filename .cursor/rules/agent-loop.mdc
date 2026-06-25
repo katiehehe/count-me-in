@@ -1,0 +1,58 @@
+---
+alwaysApply: true
+---
+# Agent Loop Rule
+
+Before editing, always follow this loop:
+
+Trigger → Plan → Act → Check → Report → Stop
+
+## Before editing
+
+First output:
+
+1. Restated task
+2. Files to inspect
+3. Files expected to change
+4. Files that are forbidden
+5. Checks/tests to run
+6. Stop condition
+
+Do not edit until the plan is complete.
+
+## While editing
+
+- Make the smallest change that completes the task.
+- Do not refactor unrelated code.
+- Do not redesign unrelated UI.
+- Do not delete files without approval.
+- Do not touch `.env` or secrets.
+- Do not change package/dependency files unless approved.
+- If you discover another issue, report it separately instead of fixing it.
+
+## After editing
+
+Run relevant checks:
+
+- npm test
+- npm run build
+- npm run typecheck
+- npm run lint
+
+If a command does not exist, say so.
+
+## Final report
+
+End with:
+
+1. Task completed
+2. Files changed
+3. What changed
+4. Tests added/updated
+5. Commands run
+6. Pass/fail result
+7. Remaining risks
+8. Manual retest checklist
+9. Recommended next action
+
+Then stop. Do not commit, merge, deploy, or start another task unless asked.

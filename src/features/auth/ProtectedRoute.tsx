@@ -21,7 +21,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   if (guard.reason === 'config') {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="text-xl font-bold text-slate-900">Firebase not configured</h1>
+        <h1 className="text-h3">Firebase not configured</h1>
         <p className="mt-2 text-slate-600">
           Copy <code className="rounded bg-slate-200 px-1">.env.example</code> to{' '}
           <code className="rounded bg-slate-200 px-1">.env</code> and add your Firebase credentials.
@@ -47,11 +47,15 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
 export function DisplayNamePrompt() {
   const { user, profile, setDisplayName } = useAuth()
-  const [name, setName] = useState(profile?.displayName ?? '')
+  // Never seed the box with the placeholder "Learner" — saving it leaves
+  // needsName true, so the prompt would never dismiss and Save looks broken.
+  const seedName = (n?: string) => (n && n !== 'Learner' ? n : '')
+  const [name, setName] = useState(seedName(profile?.displayName))
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (profile?.displayName) setName(profile.displayName)
+    const seeded = seedName(profile?.displayName)
+    if (seeded) setName(seeded)
   }, [profile?.displayName])
 
   const needsName =

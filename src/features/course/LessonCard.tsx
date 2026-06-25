@@ -122,23 +122,14 @@ export function LessonCard({ vm, accent }: { vm: LessonCardVM; accent: UnitAccen
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h4 className="truncate text-base font-semibold tracking-tight text-slate-900">
-            {vm.title}
-          </h4>
+          <h4 className="text-h4">{vm.title}</h4>
           {vm.recommended && (
             <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider ${theme.text}`}>
               Next
             </span>
           )}
         </div>
-        <p className="mt-0.5 line-clamp-1 text-[13px] text-slate-500">{vm.objective}</p>
-        {vm.tags.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {vm.tags.map((tag) => (
-              <Chip key={tag}>{tag}</Chip>
-            ))}
-          </div>
-        )}
+        <p className="mt-1 text-sm text-slate-500">{vm.objective}</p>
       </div>
 
       <div className="flex shrink-0 items-center self-center">

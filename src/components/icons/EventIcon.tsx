@@ -97,15 +97,42 @@ function PantsIcon({ className, color = '#1e3a8a' }: ThemedIconProps & { color?:
 function MealIcon({ className, color = '#f59e0b' }: ThemedIconProps & { color?: string }) {
   return (
     <svg viewBox="0 0 100 100" className={className} role="img" aria-label="Meal">
-      <circle cx="56" cy="54" r="30" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="3" />
-      <circle cx="56" cy="54" r="20" fill="none" stroke="#cbd5e1" strokeWidth="2" />
-      {/* The dish itself, tinted so each meal reads as its own color. */}
-      <circle cx="56" cy="54" r="14" fill={color} />
+      {/* The whole plate is tinted so each main dish reads clearly as its color. */}
+      <circle cx="56" cy="54" r="30" fill={color} fillOpacity="0.3" stroke={color} strokeWidth="3" />
+      <circle cx="56" cy="54" r="20" fill={color} fillOpacity="0.55" />
+      <circle cx="56" cy="54" r="12" fill={color} />
       <g stroke="#475569" strokeWidth="4" strokeLinecap="round">
         <line x1="14" y1="20" x2="14" y2="46" />
         <line x1="22" y1="20" x2="22" y2="46" />
         <line x1="18" y1="20" x2="18" y2="84" />
       </g>
+    </svg>
+  )
+}
+
+function SockIcon({
+  className,
+  color = '#64748b',
+  striped = false,
+}: ThemedIconProps & { color?: string; striped?: boolean }) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} role="img" aria-label="Socks">
+      <path
+        d="M38 12 L62 12 L62 50 L82 50 Q92 50 92 63 Q92 78 78 78 L52 78 Q38 78 38 62 Z"
+        fill={color}
+        stroke="#0f172a"
+        strokeOpacity="0.15"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      {/* Cuff band */}
+      <rect x="36" y="12" width="28" height="9" rx="3" fill="#0f172a" fillOpacity="0.22" />
+      {striped && (
+        <g stroke="#ffffff" strokeWidth="5" strokeOpacity="0.9" strokeLinecap="round">
+          <line x1="42" y1="31" x2="60" y2="31" />
+          <line x1="42" y1="42" x2="60" y2="42" />
+        </g>
+      )}
     </svg>
   )
 }
@@ -167,6 +194,14 @@ export function EventIcon({
       return <MealIcon className={className} color={color} />
     case '🥤':
       return <DrinkIcon className={className} color={color} />
+    case '🧦':
+      return (
+        <SockIcon
+          className={className}
+          color={color}
+          striped={(label ?? '').toLowerCase().includes('strip')}
+        />
+      )
     default:
       return null
   }

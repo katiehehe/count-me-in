@@ -172,7 +172,7 @@ export function LessonReview({
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <h2 className="mb-1 text-lg font-bold text-slate-900">Wrong on first try</h2>
+          <h2 className="text-h4 mb-1">Wrong on first try</h2>
           <p className="mb-3 text-sm text-slate-500">
             Questions you missed before getting them right.
           </p>
@@ -196,7 +196,7 @@ export function LessonReview({
         </Card>
 
         <Card>
-          <h2 className="mb-1 text-lg font-bold text-slate-900">Starred for review</h2>
+          <h2 className="text-h4 mb-1">Starred for review</h2>
           <p className="mb-3 text-sm text-slate-500">
             Tap the ☆ on any question to save it here.
           </p>

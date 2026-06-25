@@ -12,7 +12,7 @@ export function LessonPage() {
   if (!lesson || lesson.steps.length === 0) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="text-xl font-bold">Lesson not available yet</h1>
+        <h1 className="text-h3">Lesson not available yet</h1>
         <p className="mt-2 text-slate-600">This lesson is coming soon. Complete earlier lessons first.</p>
       </div>
     )

@@ -22,7 +22,7 @@ export function hasTokenIcon(emoji?: string): boolean {
 }
 
 /** Themed emojis (weather, sports, clothing, food) that EventIcon draws as SVGs. */
-const THEMED_EMOJIS = new Set(['🌧️', '☔', '🤕', '🏀', '👕', '👖', '🍽️', '🥤'])
+const THEMED_EMOJIS = new Set(['🌧️', '☔', '🤕', '🏀', '👕', '👖', '🍽️', '🥤', '🧦'])
 
 /** True when EventIcon can render a custom SVG for this emoji. */
 export function hasEventIcon(emoji?: string): boolean {

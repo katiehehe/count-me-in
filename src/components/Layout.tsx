@@ -70,6 +70,15 @@ export function Layout() {
         </div>
       </header>
 
+      {user?.isAnonymous && (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm text-amber-800">
+          Demo mode — your progress won&apos;t be saved and will be lost if you refresh.{' '}
+          <Link to="/login" className="font-semibold underline underline-offset-2 hover:text-amber-900">
+            Sign in to save your progress
+          </Link>
+        </div>
+      )}
+
       <main className="flex-1">
         <Suspense
           fallback={
@@ -82,9 +91,11 @@ export function Layout() {
         </Suspense>
       </main>
 
-      <footer className="border-t border-brand-100/80 bg-white/60 py-6 text-center text-sm text-slate-500">
-        Count Me In — learn contest counting by doing
-      </footer>
+      {!isLesson && (
+        <footer className="border-t border-brand-100/80 bg-white/60 py-6 text-center text-sm text-slate-500">
+          Count Me In — learn contest counting by doing
+        </footer>
+      )}
     </div>
   )
 }

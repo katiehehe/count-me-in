@@ -20,7 +20,7 @@ import {
   restartLesson,
   saveLessonProgress,
   toggleStepStar,
-} from '../progress/progressService'
+} from '../progress/progressStore'
 import {
   calculateConceptMastery,
   getMasteryTier,
@@ -55,6 +55,11 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   const stepsRef = useRef(lesson.steps)
   stepsRef.current = lesson.steps
   const [stepIndex, setStepIndex] = useState(0)
+  // Tracks the previously rendered step so we can pick a slide direction.
+  const prevStepIndexRef = useRef(0)
+  useEffect(() => {
+    prevStepIndexRef.current = stepIndex
+  }, [stepIndex])
   const [furthestIndex, setFurthestIndex] = useState(0)
   const [stepStates, setStepStates] = useState<Record<string, StepState>>({})
   const [loading, setLoading] = useState(true)
@@ -451,9 +456,7 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
       <div className="mx-auto max-w-2xl px-4 py-6 pb-28">
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-serif text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-              {lesson.title}
-            </h1>
+            <h1 className="text-h2">{lesson.title}</h1>
             <span className="rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-bold text-success-700">
               ✓ Completed
             </span>
@@ -501,16 +504,20 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   // Dev mode can click straight through any step without satisfying it.
   const canGoNext = canAdvance(step, activeStepState) || isDevUnlock()
 
+  // Direction-aware slide between steps: forward (Continue) slides in from the
+  // right, back (Previous / jump back) from the left. Computed during render
+  // before the effect below records the new index.
+  const stepDirection = stepIndex >= prevStepIndexRef.current ? 'forward' : 'back'
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
+    <>
+    <div className="animate-fade-up mx-auto max-w-2xl px-4 py-6 pb-24">
       <div className="mb-6">
         <Link to="/course" className="text-sm font-medium text-brand-600 hover:underline">
           ← Back to course
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-            {lesson.title}
-          </h1>
+          <h1 className="text-h2">{lesson.title}</h1>
           {alreadyCompleted && (
             <span className="rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-bold text-success-700">
               ✓ Completed
@@ -544,29 +551,30 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
         className="mb-6"
       />
 
-      <Card>
-        <div className="mb-2 flex items-start justify-between gap-3">
-          <h2 className="font-serif text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
-            {step.title}
-          </h2>
-          {isGradedStepType(step.type) && (
-            <StarButton
-              size="sm"
-              starred={starredSteps.includes(step.id)}
-              onToggle={() => handleToggleStar(step.id)}
-            />
-          )}
-        </div>
-        <StepRenderer
-          key={step.id}
-          step={step}
-          stepState={displayStepState}
-          onStepUpdate={handleStepUpdate}
-        />
-      </Card>
+      <div
+        key={step.id}
+        className={stepDirection === 'back' ? 'animate-step-back' : 'animate-step-forward'}
+      >
+        <Card>
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <h2 className="text-h4">{step.title}</h2>
+            {isGradedStepType(step.type) && (
+              <StarButton
+                size="sm"
+                starred={starredSteps.includes(step.id)}
+                onToggle={() => handleToggleStar(step.id)}
+              />
+            )}
+          </div>
+          <StepRenderer
+            step={step}
+            stepState={displayStepState}
+            onStepUpdate={handleStepUpdate}
+          />
+        </Card>
 
-      {isCompletion && (
-        <Card className="mt-4">
+        {isCompletion && (
+          <Card className="mt-4">
           <div className="flex flex-col items-center space-y-3 text-center">
             <MasteryBadge
               masteryScore={masteryScore}
@@ -603,7 +611,10 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
             )}
           </div>
         </Card>
-      )}
+        )}
+      </div>
+
+    </div>
 
       <div className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:py-4">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
@@ -637,6 +648,6 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
           )}
         </div>
       </div>
-    </div>
+    </>
   )
 }
