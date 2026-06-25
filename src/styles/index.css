@@ -176,8 +176,11 @@
     /* Native overscroll is intentionally left enabled so iOS keeps its top
        pull-to-refresh gesture. Only the BOTTOM rubber-band bounce is suppressed,
        and that's done in JS (useSuppressBottomOverscroll) since overscroll-behavior
-       is per-axis and can't distinguish top from bottom. */
-    background-color: #eef3f9;
+       is per-axis and can't distinguish top from bottom.
+       White so the (still-enabled) TOP overscroll reads as a continuous extension
+       of the white header banner. The bottom never bounces, so a single white root
+       color is all we need. */
+    background-color: #ffffff;
   }
 
   body {
