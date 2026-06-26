@@ -48,11 +48,20 @@ export async function ensureUserProfile(
     email,
     streakCount: 0,
     lastActiveDate: '',
+    companionXp: 0,
     createdAt: now,
     updatedAt: now,
   }
   profiles.set(uid, profile)
   return profile
+}
+
+export async function awardCompanionXp(uid: string, amount: number) {
+  if (amount <= 0) return
+  const profile = profiles.get(uid)
+  if (!profile) return
+  profile.companionXp = (profile.companionXp ?? 0) + amount
+  profile.updatedAt = Timestamp.now()
 }
 
 export async function updateDisplayName(uid: string, displayName: string) {

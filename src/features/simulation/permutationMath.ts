@@ -43,6 +43,15 @@ export function countingPrinciple(sizes: number[]): number {
   return sizes.reduce((product, size) => product * size, 1)
 }
 
+/**
+ * Number of length-`slots` sequences drawn from `options` choices WITH repetition
+ * allowed (options^slots). Example: a 4-symbol code from 5 symbols → 5^4 = 625.
+ */
+export function repeatedArrangements(options: number, slots: number): number {
+  if (options < 0 || slots < 0) return 0
+  return options ** slots
+}
+
 export function formatFactorial(n: number): string {
   if (n <= 1) return '1'
   return Array.from({ length: n }, (_, i) => n - i).join(' × ')

@@ -24,6 +24,7 @@ const pick = () => (isDemoSession() ? demo : fs)
 export const getUserProfile: typeof fs.getUserProfile = (...a) => pick().getUserProfile(...a)
 export const ensureUserProfile: typeof fs.ensureUserProfile = (...a) => pick().ensureUserProfile(...a)
 export const updateDisplayName: typeof fs.updateDisplayName = (...a) => pick().updateDisplayName(...a)
+export const awardCompanionXp: typeof fs.awardCompanionXp = (...a) => pick().awardCompanionXp(...a)
 export const getAllLessonProgress: typeof fs.getAllLessonProgress = (...a) =>
   pick().getAllLessonProgress(...a)
 export const getLessonProgress: typeof fs.getLessonProgress = (...a) => pick().getLessonProgress(...a)

@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   runTransaction,
   serverTimestamp,
   setDoc,
@@ -48,6 +49,7 @@ export async function ensureUserProfile(
     email,
     streakCount: 0,
     lastActiveDate: '',
+    companionXp: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   }
@@ -59,6 +61,16 @@ export async function ensureUserProfile(
 
 export async function updateDisplayName(uid: string, displayName: string) {
   await updateDoc(userRef(uid), { displayName, updatedAt: serverTimestamp() })
+}
+
+/** Atomically adds companion XP (from AI Challenge Mode) to the user profile. */
+export async function awardCompanionXp(uid: string, amount: number) {
+  if (amount <= 0) return
+  await setDoc(
+    userRef(uid),
+    { companionXp: increment(amount), updatedAt: serverTimestamp() },
+    { merge: true },
+  )
 }
 
 export async function getAllLessonProgress(uid: string): Promise<LessonProgressDoc[]> {

@@ -31,6 +31,7 @@ import { MasteryBadge } from '../../components/MasteryBadge'
 import { StarButton } from '../../components/StarButton'
 import { CONCEPT_LABELS } from '../../content/types'
 import { isDevUnlock } from '../dev/devMode'
+import { isAiEnabled } from '../../firebase/aiConfig'
 
 interface LessonRendererProps {
   lesson: Lesson
@@ -314,6 +315,13 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
       setAlreadyCompleted(true)
       setFurthestIndex(lesson.steps.length - 1)
       setReviewWalkthrough(false)
+      // The lesson is now saved and the next lesson unlocked. When AI is on, route
+      // into Challenge Mode for retrieval practice; the results summary stays
+      // reachable from there. With AI off, fall back to the summary as before.
+      if (isAiEnabled()) {
+        navigate(`/challenge/${lesson.id}`)
+        return
+      }
       setReviewing(true)
       return
     }

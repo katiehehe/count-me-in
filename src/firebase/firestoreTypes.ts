@@ -8,6 +8,8 @@ export interface UserProfile {
   updatedAt: Timestamp
   streakCount: number
   lastActiveDate: string
+  /** Companion XP earned in AI Challenge Mode (reflection points). */
+  companionXp?: number
 }
 
 export interface StepAnswerRecord {

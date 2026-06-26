@@ -21,6 +21,9 @@ const CoursePage = lazy(() =>
 const LessonPage = lazy(() =>
   import('../features/lesson/LessonPage').then((m) => ({ default: m.LessonPage })),
 )
+const ChallengePage = lazy(() =>
+  import('../features/challenge/ChallengePage').then((m) => ({ default: m.ChallengePage })),
+)
 
 // Keying on the lesson id forces a full remount when navigating directly from one
 // lesson to the next (same route). Without this, LessonPage keeps the course
@@ -29,6 +32,13 @@ const LessonPage = lazy(() =>
 function LessonRoute() {
   const { lessonId } = useParams<{ lessonId: string }>()
   return <LessonPage key={lessonId} />
+}
+
+// Same remount-on-id rationale as LessonRoute: each lesson's Challenge session is
+// built once on mount from that lesson's state, so changing lessons must remount.
+function ChallengeRoute() {
+  const { lessonId } = useParams<{ lessonId: string }>()
+  return <ChallengePage key={lessonId} />
 }
 
 export const router = createBrowserRouter([
@@ -51,6 +61,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <LessonRoute />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'challenge/:lessonId',
+        element: (
+          <ProtectedRoute>
+            <ChallengeRoute />
           </ProtectedRoute>
         ),
       },

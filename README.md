@@ -32,7 +32,7 @@ Open [http://localhost:5173](http://localhost:5173).
 | `VITE_FIREBASE_STORAGE_BUCKET` | Storage bucket |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Messaging sender ID |
 | `VITE_FIREBASE_APP_ID` | App ID |
-| `VITE_AI_ENABLED` | Always `false` for Phase 1 |
+| `VITE_AI_ENABLED` | `true` to enable the Phase 2 AI Challenge Mode (requires the `challengeAi` Cloud Function deployed); `false` runs the app with no AI |
 
 ### Firebase setup
 
@@ -40,6 +40,11 @@ Open [http://localhost:5173](http://localhost:5173).
 2. Enable **Google** and **Anonymous** sign-in under Authentication
 3. Create a Firestore database (production mode is fine; add rules below)
 4. Register a web app and copy config into `.env`
+5. **(Phase 2 AI Challenge Mode)** Deploy the OpenAI proxy function:
+   - Upgrade the project to the **Blaze** plan (Cloud Functions require it).
+   - Store your OpenAI key as a server secret: `firebase functions:secrets:set OPENAI_API_KEY`
+   - Install + deploy the function: `npm --prefix functions install && firebase deploy --only functions`
+   - Set `VITE_AI_ENABLED=true` and redeploy hosting. The OpenAI key stays server-side; it is never shipped to the browser.
 
 **Firestore rules (development):**
 
@@ -66,12 +71,15 @@ src/
 ├── content/          # Course + lesson data (typed, data-driven)
 ├── features/
 │   ├── auth/         # Firebase Auth provider + login
+│   ├── challenge/    # Phase 2 AI Challenge Mode (grounding, prompts, deterministic transfer, UI)
 │   ├── course/       # Course path, lesson locking
 │   ├── lesson/       # Lesson engine + step renderers
 │   ├── progress/     # Firestore persistence, streaks, mastery
 │   └── simulation/   # Interactive manipulatives + permutation math
-├── firebase/         # Client init + types
+├── firebase/         # Client init + types + OpenAI callable client
 └── pages/            # Landing page
+
+functions/            # Firebase Cloud Function: OpenAI (gpt-4o) Challenge Mode proxy
 ```
 
 ### Content model
@@ -113,12 +121,36 @@ A sequential path; each lesson unlocks the next once it's mastered.
 - Mobile-responsive UI with touch support
 - Works fully without any AI features
 
-## Phase 2 (not implemented)
+## Phase 2 — AI Challenge Mode (shipped)
 
-- AI targeted hints grounded in lesson state
-- Generated practice problems (AI proposes, app verifies)
+After completing any lesson, learners are routed into **Challenge Mode**: a short,
+structured conversation with a cat companion ("Pip") that checks whether the idea
+stuck. It is **not** a chatbot and **not** pass/fail — lesson completion and
+unlocking happen *before* it and never depend on AI.
 
-Set `VITE_AI_ENABLED=false` to keep AI off.
+- **Grounded in lesson state** — every AI call receives the completed lesson's
+  concepts, the steps worked through, the learner's actual first-try mistakes, and
+  the mastery score (`buildGroundingContext.ts`), never just raw chat text.
+- **Question mix** — explain-it-back, catch-the-mistake (driven by real mistakes),
+  a transfer problem, and real-life examples, with a small "explain simpler /
+  contest-style / another example" option.
+- **Deterministic math** — transfer answers are computed and graded in code
+  (`transferQuestions.ts` + `permutationMath.ts`); the AI only explains, never
+  decides correctness.
+- **Structured output** — OpenAI Structured Outputs constrain responses to typed
+  JSON via strict `json_schema` (defined server-side in `functions/src/index.ts`).
+- **Companion XP** — thoughtful answers earn fish/XP (computed in code, stored on
+  the profile); sessions + responses persist under
+  `users/{uid}/challengeSessions/{sessionId}[/responses]`.
+- **Degrades gracefully** — with `VITE_AI_ENABLED=false`, or if AI calls fail,
+  the app falls back to the normal results summary and never blocks the learner.
+
+Built on **OpenAI** (`gpt-4o`) called through a **Firebase Cloud Function**
+(`functions/`), so the API key stays server-side and the browser only calls an
+auth-gated callable. See [`BRAINLIFT.md`](BRAINLIFT.md) for the design rationale
+(why Challenge Mode over a chatbot, grounding, and math verification).
+
+Set `VITE_AI_ENABLED=false` to run the app with AI turned off.
 
 ## Phase 3 (not implemented)
 
@@ -146,6 +178,11 @@ logic most likely to break silently:
 - `progressService.test.ts` — Firestore persistence: step-pointer/answer write
   ordering (race regression), seed round-trip, first-attempt locking
 - `content.test.ts` — lesson copy never promises an interaction the UI lacks
+- `transferQuestions.test.ts` — deterministic transfer answers are integer,
+  code-checkable, and reproducible across seeds and concepts
+- `sessionPlan.test.ts` — Challenge sessions are 2-4 questions and include
+  catch-the-mistake exactly when the learner made mistakes
+- `challengeXp.test.ts` — XP, understanding aggregation, and next-action mapping
 
 See `MVP_AUDIT.md` for the full QA audit and stabilization log.
 
@@ -155,7 +192,9 @@ See `MVP_AUDIT.md` for the full QA audit and stabilization log.
 - Anonymous auth users are prompted to set a display name on first visit
 - A lesson started on one device *before* seed-persistence shipped may show
   different numbers on a second device until it's restarted (legacy docs only)
-- Single JS bundle (~1 MB) — code-splitting is a known future optimization
+- The Firebase SDK is split into long-cached vendor chunks
+- AI Challenge Mode requires the `challengeAi` Cloud Function deployed (Blaze plan
+  + `OPENAI_API_KEY` secret); until then it degrades to the normal results summary
 
 ## License
 
