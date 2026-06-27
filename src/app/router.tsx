@@ -24,6 +24,18 @@ const LessonPage = lazy(() =>
 const ChallengePage = lazy(() =>
   import('../features/challenge/ChallengePage').then((m) => ({ default: m.ChallengePage })),
 )
+const PracticePage = lazy(() =>
+  import('../features/practice/PracticePage').then((m) => ({ default: m.PracticePage })),
+)
+const WeakSpotsPage = lazy(() =>
+  import('../features/practice/WeakSpotsPage').then((m) => ({ default: m.WeakSpotsPage })),
+)
+const WeeklyReviewPage = lazy(() =>
+  import('../features/practice/WeeklyReviewPage').then((m) => ({ default: m.WeeklyReviewPage })),
+)
+const TrainingLabPage = lazy(() =>
+  import('../features/practice/TrainingLabPage').then((m) => ({ default: m.TrainingLabPage })),
+)
 
 // Keying on the lesson id forces a full remount when navigating directly from one
 // lesson to the next (same route). Without this, LessonPage keeps the course
@@ -39,6 +51,11 @@ function LessonRoute() {
 function ChallengeRoute() {
   const { lessonId } = useParams<{ lessonId: string }>()
   return <ChallengePage key={lessonId} />
+}
+
+function PracticeRoute() {
+  const { lessonId } = useParams<{ lessonId: string }>()
+  return <PracticePage key={lessonId} />
 }
 
 export const router = createBrowserRouter([
@@ -69,6 +86,38 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <ChallengeRoute />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'practice',
+        element: (
+          <ProtectedRoute>
+            <WeakSpotsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'weekly-review',
+        element: (
+          <ProtectedRoute>
+            <WeeklyReviewPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'training',
+        element: (
+          <ProtectedRoute>
+            <TrainingLabPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'practice/:lessonId',
+        element: (
+          <ProtectedRoute>
+            <PracticeRoute />
           </ProtectedRoute>
         ),
       },

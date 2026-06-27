@@ -18,6 +18,10 @@ export type StepType =
   | 'expected-value-sim'
   | 'product-grid'
   | 'multiset-condense'
+  | 'worked-example'
+  | 'conditional-select'
+  | 'complement-select'
+  | 'coin-flip-sim'
   | 'completion'
 
 export interface Course {
@@ -72,6 +76,197 @@ export interface FactorialDiscoveryConfig {
    * smaller to build a partial product like nPr (e.g. count 5, slots 3 → 5×4×3).
    */
   slots?: number
+}
+
+/** Which teaching diagram a worked example renders and the narration highlights. */
+export type WorkedExampleKind =
+  | 'slots'
+  | 'connections'
+  | 'group'
+  | 'tree'
+  | 'distribution'
+  | 'draw'
+  | 'sample-space'
+  | 'venn'
+  | 'coins-sum'
+  | 'steps'
+
+/** One outcome tile in a sample-space diagram or conditional selector. */
+export interface SampleOutcome {
+  id: string
+  label: string
+  emoji?: string
+}
+
+/** One narration beat in a worked example: a spoken line, what it reveals, and any motion. */
+export interface WorkedExampleBeat {
+  /** The line the teacher narrates (also shown as a caption). */
+  say: string
+  /**
+   * Diagram element to highlight/reveal while this line plays. Targets depend on the
+   * `kind`: e.g. `'pool'`/`'slot-0'`/`'product'` (slots), `'left'`/`'right'`/`'product'`
+   * (connections), `'items'`/`'repeats'`/`'product'` (group), `'ordered'`/`'grouped'`/
+   * `'product'` (tree), `'bars'`/`'bar-0'`/`'result'` (distribution).
+   */
+  highlight?: string
+  /**
+   * Optional choreography cue enacted on this beat, e.g. `'shuffle'` (reorder the
+   * items), `'condense'` (cluster identical items), `'collapse'` (collapse duplicates).
+   */
+  anim?: string
+}
+
+export interface WorkedConnectionItem {
+  id: string
+  label: string
+  emoji?: string
+}
+
+export interface WorkedGroupChip {
+  id: string
+  label: string
+  color: string
+  /** Chips sharing a `kind` are identical (a repeated group divided out as k!). */
+  kind: string
+}
+
+export interface WorkedDistributionBar {
+  label: string
+  value: number
+}
+
+export interface WorkedExampleConfig {
+  /** Which teaching diagram to render. Defaults to `'slots'` (the arrangement view). */
+  kind?: WorkedExampleKind
+  /** Ordered narration beats the teacher walks through. */
+  script: WorkedExampleBeat[]
+  /** OpenAI TTS voice (defaults to 'nova'). */
+  voice?: string
+  /** `'slots'`: the distinct items whose count drives the slots and per-slot choices. */
+  items?: ArrangementItem[]
+  /** `'connections'`: two groups whose sizes multiply to the total. */
+  connections?: {
+    leftLabel: string
+    rightLabel: string
+    left: WorkedConnectionItem[]
+    right: WorkedConnectionItem[]
+    pairingLabel?: string
+  }
+  /** `'group'`: color-coded chips with repeats → n! ÷ (∏ k!). */
+  group?: {
+    chips: WorkedGroupChip[]
+  }
+  /** `'tree'`: ordered vs unordered selections → divide out the k! orderings. */
+  tree?: {
+    ordered: string[]
+    grouped: string[]
+    divideBy: number
+    orderedLabel?: string
+    groupedLabel?: string
+  }
+  /** `'distribution'`: a small bar chart with a result caption revealed at the end. */
+  distribution?: {
+    bars: WorkedDistributionBar[]
+    caption: string
+    /** Optional LaTeX for the result (rendered with KaTeX); falls back to `caption`. */
+    latex?: string
+  }
+  /**
+   * `'draw'`: drawing without replacement. A jar of `red`/`blue` marbles, two draw
+   * cards, and the P(both red) product — numbers reveal beat by beat (`'jar'`,
+   * `'draw1'`, `'draw2'`, `'product'`) so the sample visibly shrinks.
+   */
+  draw?: {
+    red: number
+    blue: number
+  }
+  /**
+   * `'sample-space'`: an outcome grid. In the default `'conditional'` mode, beats
+   * reveal `'space'`, `'given'` (dim outside B), `'favorable'` (highlight A ∩ B),
+   * and `'result'` (P(A|B) = |A∩B|/|B|). In `'complement'` mode, beats reveal
+   * `'space'`, `'target'` (outline the big event A), `'complement'` (shade the small
+   * "not A" set), and `'result'` (P(A) = 1 − |notA|/|S| in KaTeX).
+   */
+  sampleSpace?: {
+    outcomes: SampleOutcome[]
+    mode?: 'conditional' | 'complement'
+    givenIds?: string[]
+    favorableIds?: string[]
+    /** Complement mode: ids of the small, easy-to-count "not A" set. */
+    complementIds?: string[]
+    /** Complement mode: name of the event A for the result box, e.g. "at least one H". */
+    eventLabel?: string
+    /** Optional fixed column count for a grid layout (e.g. 6 for a dice table). */
+    columns?: number
+  }
+  /**
+   * `'venn'`: overlapping regions. In `'conditional'` mode, beats reveal `'a'`,
+   * `'b'`, `'overlap'` (A ∩ B), `'result'`. In `'complement'` mode, a single circle
+   * A sits in the world; beats reveal `'a'`, `'complement'` (shade everything
+   * outside A), and `'result'` (P(A) = 1 − P(not A)).
+   */
+  venn?: {
+    aLabel: string
+    bLabel?: string
+    mode?: 'conditional' | 'complement'
+    /** LaTeX for the result box; defaults to the area-ratio (or complement) formula. */
+    resultLatex?: string
+  }
+  /**
+   * `'coins-sum'`: a row of `coins` coins. Default `'expectation'` mode reveals
+   * `'coins'`, `'contributions'` (a `+½` per coin), `'result'` (E = coins × ½). The
+   * `'indicator'` mode instead reveals `'coins'`, `'marks'` (a concrete 0/1 Xᵢ per
+   * coin + the cumulative ΣXᵢ head count from `values`), and `'result'`
+   * (E[Xᵢ] = ½ ⇒ E[ΣXᵢ] = coins × ½) in KaTeX.
+   */
+  coinsSum?: {
+    coins: number
+    mode?: 'expectation' | 'indicator'
+    /** Indicator mode: the concrete 0/1 outcome of each coin for the worked flip. */
+    values?: number[]
+  }
+  /**
+   * `'steps'`: a stepped-equation reveal for multi-concept problems. Each line shows
+   * a KaTeX equation (with an optional caption naming the tool used) and appears only
+   * once its beat `'step-0'`, `'step-1'`, … is reached — so the board starts blank.
+   */
+  steps?: {
+    lines: { latex: string; caption?: string }[]
+  }
+}
+
+/** Config for the interactive conditional sample-space selector. */
+export interface ConditionalSelectConfig {
+  outcomes: SampleOutcome[]
+  /** Ids forming the given event B (the restricted world). */
+  givenIds: string[]
+  /** Ids of the favorable event A within B (what the learner must select). */
+  favorableIds: string[]
+  /** Plain-language name of the given condition, e.g. "a heart". */
+  givenLabel: string
+  /** Plain-language name of the favorable event, e.g. "a face card". */
+  favorableLabel: string
+}
+
+/** Config for the 10-coin trial simulator (running average heads → coins/2). */
+export interface CoinFlipSimConfig {
+  /** Coins flipped per trial. Defaults to 10. */
+  coins?: number
+  /** Label each coin as an indicator Xᵢ ∈ {0,1} and show the cumulative ΣXᵢ. */
+  showIndicators?: boolean
+}
+
+/** Config for the interactive "select the complement" sample-space explorer. */
+export interface ComplementSelectConfig {
+  outcomes: SampleOutcome[]
+  /** Ids of the small complement (the "not A" set) the learner must tap. */
+  complementIds: string[]
+  /** Plain-language name of the complement, e.g. "fewer than two heads". */
+  complementLabel: string
+  /** Plain-language name of the target event A, e.g. "at least two heads". */
+  eventLabel: string
+  /** Optional fixed column count for a grid layout (e.g. 4). Defaults to wrap. */
+  columns?: number
 }
 
 export interface ConnectionGroupItem {
@@ -233,6 +428,10 @@ export interface LessonStep {
   expectedValueSimConfig?: ExpectedValueSimConfig
   productGridConfig?: ProductGridConfig
   multisetCondenseConfig?: MultisetCondenseConfig
+  workedExampleConfig?: WorkedExampleConfig
+  conditionalSelectConfig?: ConditionalSelectConfig
+  complementSelectConfig?: ComplementSelectConfig
+  coinFlipSimConfig?: CoinFlipSimConfig
   /** When set, renders a systematic, color-coded list of all orderings of these items. */
   orderingsDisplay?: ArrangementItem[]
   question?: Question
@@ -289,6 +488,12 @@ export const CONCEPT_LABELS: Record<string, string> = {
   'multiset-permutation': 'Dividing Out Repeats',
   combinations: 'Combinations',
   'independent-events': 'Independent Events',
+  'dependent-events': 'Dependent Events',
+  'conditional-probability': 'Conditional Probability',
+  'complement-rule': 'The Complement Rule',
+  'linearity-expectation': 'Linearity of Expectation',
+  'indicator-variables': 'Indicator Variables',
+  synthesis: 'Mixed Review',
   probability: 'Probability',
   'expected-value': 'Expected Value',
 }

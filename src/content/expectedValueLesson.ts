@@ -31,7 +31,41 @@ export const expectedValueLesson: Lesson = {
       title: 'What Is Expected Value?',
       body: 'EXPECTED VALUE is the average outcome you would get by repeating a game many, many times. To compute it, multiply each possible payout by its probability, then add those products together. A normal average weights every value equally; expected value weights each value by how likely it is.',
       prompt: 'Expected value = the long-run average payout per play.',
-      nextButtonLabel: 'Let’s build it up',
+      nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'worked-average',
+      type: 'worked-example',
+      title: 'Watch Me Count One',
+      body: 'Let me average a bag of three prize slips out loud.',
+      workedExampleConfig: {
+        kind: 'distribution',
+        voice: 'nova',
+        distribution: {
+          bars: [
+            { label: '$2', value: 2 },
+            { label: '$4', value: 4 },
+            { label: '$9', value: 9 },
+          ],
+          caption: '(2 + 4 + 9) ÷ 3 = $5',
+          latex: '\\frac{2 + 4 + 9}{3} = \\$5',
+        },
+        script: [
+          {
+            say: 'Our job is to find the expected value — the average payout over many draws — of this bag of prize slips. It holds three equally likely slips, worth two, four, and nine dollars.',
+            highlight: 'bars',
+          },
+          {
+            say: 'Because each slip is equally likely, the expected value is just their average.',
+            highlight: 'bars',
+          },
+          {
+            say: 'Add the payouts — two plus four plus nine is fifteen — then divide by the three slips: fifteen over three equals five dollars.',
+            highlight: 'result',
+          },
+        ],
+      },
+      concepts: ['expected-value'],
     },
     {
       id: 'average-simple',

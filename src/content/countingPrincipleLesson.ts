@@ -28,7 +28,40 @@ export const countingPrincipleLesson: Lesson = {
       title: 'Getting Dressed',
       body: 'You have 3 shirts and 2 pairs of socks. An "outfit" is one shirt paired with one pair of socks. You want to know how many different outfits you can put together.',
       prompt: 'Before counting: do you think there are more or fewer than 10 outfits?',
-      nextButtonLabel: 'Let me pair them up',
+      nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'worked-outfits',
+      type: 'worked-example',
+      title: 'Watch Me Count One',
+      body: 'Before you pair them up, let me count the outfits out loud.',
+      workedExampleConfig: {
+        kind: 'connections',
+        voice: 'nova',
+        connections: {
+          leftLabel: 'Shirts',
+          rightLabel: 'Socks',
+          left: shirts,
+          right: socks,
+          pairingLabel: 'outfit',
+        },
+        script: [
+          {
+            say: 'Our job is to count how many different outfits we can make — one shirt with one pair of socks. Start with the tops: there are three shirts to pick from.',
+            highlight: 'left',
+          },
+          { say: 'And two pairs of socks for the bottom.', highlight: 'right' },
+          {
+            say: 'Every shirt can be worn with either pair of socks, so each of the three shirts branches into two outfits.',
+            highlight: 'right',
+          },
+          {
+            say: 'The choices are separate stages, so we multiply: three shirts times two socks equals six different outfits.',
+            highlight: 'product',
+          },
+        ],
+      },
+      concepts: ['counting-principle'],
     },
     {
       id: 'connect-outfits',

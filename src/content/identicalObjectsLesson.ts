@@ -40,7 +40,44 @@ export const identicalObjectsLesson: Lesson = {
       title: 'Beads on a String',
       body: 'You are threading colored beads onto a string to make a pattern. In the last lesson every object was distinct. Now some beads will be exactly the same color — and that changes how we count.',
       prompt: 'Does swapping two beads of the same color create a new pattern?',
-      nextButtonLabel: 'Let me arrange some beads',
+      nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'worked-beads',
+      type: 'worked-example',
+      title: 'Watch Me Count One',
+      body: 'Let me count the patterns for two red beads and one blue bead out loud.',
+      workedExampleConfig: {
+        kind: 'group',
+        voice: 'nova',
+        group: {
+          chips: [
+            { id: 'r1', label: 'Red', color: '#ef4444', kind: 'red' },
+            { id: 'r2', label: 'Red', color: '#ef4444', kind: 'red' },
+            { id: 'b1', label: 'Blue', color: '#3b82f6', kind: 'blue' },
+          ],
+        },
+        script: [
+          {
+            say: 'Our job is to count how many patterns actually look different when some beads are identical. We are arranging three beads: two red and one blue.',
+            highlight: 'items',
+          },
+          {
+            say: 'If all three were different colors, there would be three factorial — that is six — orderings.',
+            highlight: 'items',
+          },
+          {
+            say: 'But the two reds look identical, so swapping them is no new pattern. They can be ordered in two factorial — that is two — ways that all look the same.',
+            highlight: 'repeats',
+            anim: 'condense',
+          },
+          {
+            say: 'So we divide six by two: three factorial over two factorial equals three patterns that truly look different.',
+            highlight: 'product',
+          },
+        ],
+      },
+      concepts: ['identical-objects', 'multiset-permutation', 'factorial'],
     },
     {
       id: 'explore-distinct',

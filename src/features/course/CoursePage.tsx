@@ -1,13 +1,18 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../components/Button'
+import { getLessonById } from '../../content/course'
 import { useCourseProgress } from './useCourseProgress'
 import { buildCurriculum } from './curriculumView'
 import { CurriculumRoadmap } from './CurriculumRoadmap'
 import { UnitSection } from './UnitSection'
 import { useAuth } from '../auth/AuthProvider'
 import { DisplayNamePrompt } from '../auth/ProtectedRoute'
-import { isDevUnlock } from '../dev/devMode'
+import { isDevUnlock, isWeeklyReviewForced } from '../dev/devMode'
+import { reviewDueConceptIds } from '../practice/conceptSrs'
+import { practiceableConcepts } from '../practice/practiceEngine'
+import { weeklyReviewDue } from '../practice/weeklyReview'
+import { todayDateString } from '../progress/streaks'
 
 const STAGES = [
   { label: 'Counting', num: 'text-lavender-600' },
@@ -36,6 +41,27 @@ export function CoursePage() {
     [lessonStates, recommendedLessonId],
   )
 
+  // "Start review" appears only when a genuinely new review is due: ≥7 days since the
+  // last completed one AND the SRS has concepts due. Otherwise the learner is nudged
+  // toward the persisted weak spots from their last review.
+  const { startDue, dueCount } = useMemo(() => {
+    const learned = new Set<string>()
+    let completedCount = 0
+    for (const s of lessonStates) {
+      if (s.status !== 'completed' && s.status !== 'mastered') continue
+      completedCount++
+      const lesson = getLessonById(s.lessonId)
+      if (!lesson) continue
+      for (const conceptId of practiceableConcepts(lesson.concepts)) learned.add(conceptId)
+    }
+    const dueIds = reviewDueConceptIds(profile?.conceptSrs ?? {}, [...learned], todayDateString())
+    // Demo override (`?weeklyReview=1`) re-surfaces the review even when it isn't due.
+    const forced = isWeeklyReviewForced()
+    const naturallyDue = weeklyReviewDue(profile, completedCount) && dueIds.length > 0
+    const startDue = naturallyDue || (forced && learned.size > 0)
+    return { startDue, dueCount: dueIds.length || (forced ? learned.size : 0) }
+  }, [lessonStates, profile])
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -46,6 +72,7 @@ export function CoursePage() {
 
   const { units, earnedCheckpoints, totalCheckpoints, completedLessons, totalLessons } = curriculum
   const checkpointPct = totalCheckpoints > 0 ? Math.round((earnedCheckpoints / totalCheckpoints) * 100) : 0
+  const weakSpots = profile?.weeklyReviewWeakLessons ?? []
   const firstName =
     profile?.displayName && profile.displayName !== 'Learner'
       ? profile.displayName.split(' ')[0]
@@ -106,11 +133,23 @@ export function CoursePage() {
                   <Stat value={`${completedLessons}/${totalLessons}`} label="Lessons" />
                   <Stat value={`${profile?.streakCount ?? 0}`} label="Day streak" />
                 </div>
-                {continueLessonId && (
-                  <Link to={`/lesson/${continueLessonId}`}>
-                    <Button size="lg">Continue →</Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link to="/training">
+                    <Button size="lg" variant="secondary">
+                      🧪 Training Lab
+                    </Button>
                   </Link>
-                )}
+                  <Link to="/practice">
+                    <Button size="lg" variant="secondary">
+                      ⭐ Weak-spot practice
+                    </Button>
+                  </Link>
+                  {continueLessonId && (
+                    <Link to={`/lesson/${continueLessonId}`}>
+                      <Button size="lg">Continue →</Button>
+                    </Link>
+                  )}
+                </div>
               </div>
 
               {/* checkpoint meter */}
@@ -125,6 +164,38 @@ export function CoursePage() {
             </div>
           </div>
         </header>
+
+        {/* ---- Spaced repetition review ---- */}
+        {startDue ? (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border-2 border-blush-300 bg-blush-50 px-5 py-4 shadow-soft">
+            <div>
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-blush-600">
+                Spaced repetition
+              </p>
+              <p className="mt-0.5 text-lg font-semibold text-slate-900">Concepts due for review</p>
+              <p className="text-sm text-slate-600">
+                {dueCount} concept{dueCount === 1 ? '' : 's'} {dueCount === 1 ? 'is' : 'are'} ready for
+                a refresh — quick mixed quiz, earn XP, lock it in.
+              </p>
+            </div>
+            <Link to="/weekly-review">
+              <Button size="lg">Start review →</Button>
+            </Link>
+          </div>
+        ) : weakSpots.length > 0 ? (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border-2 border-blush-300 bg-blush-50 px-5 py-4 shadow-soft">
+            <div>
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-blush-600">
+                Spaced repetition
+              </p>
+              <p className="mt-0.5 text-lg font-semibold text-slate-900">Review your weak spots</p>
+              <p className="text-sm text-slate-600">Work through the spots from your last review.</p>
+            </div>
+            <Link to="/weekly-review">
+              <Button size="lg">Review weak spots →</Button>
+            </Link>
+          </div>
+        ) : null}
 
         {/* ---- Contents ---- */}
         <div className="mt-6">

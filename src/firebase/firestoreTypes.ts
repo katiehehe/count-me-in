@@ -10,6 +10,28 @@ export interface UserProfile {
   lastActiveDate: string
   /** Companion XP earned in AI Challenge Mode (reflection points). */
   companionXp?: number
+  /** Local date (YYYY-MM-DD) the learner last completed a weekly review. */
+  lastWeeklyReviewAt?: string
+  /** Lesson ids flagged as weak in the last completed review (the persisted summary). */
+  weeklyReviewWeakLessons?: string[]
+  /** Per-concept spaced-repetition schedules, keyed by concept id. */
+  conceptSrs?: Record<string, ConceptSrsState>
+  /** Cumulative cross-lesson practice tallies per concept (drives weak-spot targeting). */
+  conceptStats?: Record<string, { correct: number; wrong: number }>
+}
+
+/**
+ * SM-2-lite spaced-repetition schedule for a single concept. `due` is the local
+ * calendar date (YYYY-MM-DD) the concept next needs review; a correct answer
+ * pushes it further out, a miss brings it back to tomorrow.
+ */
+export interface ConceptSrsState {
+  reps: number
+  intervalDays: number
+  ease: number
+  due: string
+  lapses: number
+  lastReviewed: string
 }
 
 export interface StepAnswerRecord {

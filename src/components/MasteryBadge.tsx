@@ -50,8 +50,11 @@ export function MasteryBadge({
   const { tier, label } = getMasteryTier(masteryScore)
   const styles = tierStyles[tier]
   const hasCount = typeof correct === 'number' && typeof total === 'number' && total > 0
+  // Defensive clamp: never display more correct than total (which would read as an
+  // impossible >100%), e.g. if a lesson's graded-step count shrank after completion.
+  const safeCorrect = hasCount ? Math.min(correct as number, total as number) : correct
   const countText = hasCount
-    ? `${correct} of ${total} correct`
+    ? `${safeCorrect} of ${total} correct`
     : `${Math.round(masteryScore * 100)}%`
 
   if (size === 'large') {
@@ -73,7 +76,7 @@ export function MasteryBadge({
       {label}
       {showCount && (
         <span className="font-semibold opacity-80">
-          {hasCount ? `(${correct}/${total})` : `(${Math.round(masteryScore * 100)}%)`}
+          {hasCount ? `(${safeCorrect}/${total})` : `(${Math.round(masteryScore * 100)}%)`}
         </span>
       )}
     </span>

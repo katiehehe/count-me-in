@@ -15,6 +15,12 @@ const CONCEPTS = [
   'multiset-permutation',
   'combinations',
   'independent-events',
+  'dependent-events',
+  'conditional-probability',
+  'complement-rule',
+  'linearity-expectation',
+  'indicator-variables',
+  'synthesis',
   'probability',
   'expected-value',
 ]

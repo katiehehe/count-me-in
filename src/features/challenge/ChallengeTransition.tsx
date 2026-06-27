@@ -4,12 +4,11 @@ import { Companion } from './Companion'
 
 interface ChallengeTransitionProps {
   onStart: () => void
-  onSkip: () => void
   busy?: boolean
 }
 
 /** The "Nice work. Now let's check if the idea really stuck." gateway screen. */
-export function ChallengeTransition({ onStart, onSkip, busy }: ChallengeTransitionProps) {
+export function ChallengeTransition({ onStart, busy }: ChallengeTransitionProps) {
   return (
     <div className="animate-fade-up mx-auto max-w-2xl px-4 py-10">
       <Card className="text-center">
@@ -21,12 +20,9 @@ export function ChallengeTransition({ onStart, onSkip, busy }: ChallengeTransiti
           A few quick reflection questions with your companion. This isn&apos;t a test — there&apos;s
           no pass or fail, and your lesson is already saved. Answer thoughtfully to earn fish.
         </p>
-        <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
+        <div className="mt-6 flex justify-center">
           <Button onClick={onStart} disabled={busy} size="lg">
             {busy ? 'Preparing…' : 'Start challenge →'}
-          </Button>
-          <Button variant="ghost" onClick={onSkip} disabled={busy}>
-            Skip for now
           </Button>
         </div>
       </Card>

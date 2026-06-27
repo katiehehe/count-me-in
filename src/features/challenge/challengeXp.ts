@@ -2,13 +2,14 @@ import type { ChallengeUnderstanding, RecommendedNextAction } from './challengeT
 
 /**
  * Companion XP awarded per answered question, keyed by the soft understanding
- * label. XP is computed deterministically in code (never taken from the AI's
- * `xpAwarded` field) so the reward system can't be gamed by prompt manipulation.
+ * label. XP scales with how well the learner does, and a poor/incorrect answer
+ * earns 0 — so XP reflects real understanding. Computed deterministically in code
+ * (never from the AI's `xpAwarded` field) so it can't be gamed by prompts.
  */
 export const XP_BY_UNDERSTANDING: Record<ChallengeUnderstanding, number> = {
   strong: 20,
-  developing: 12,
-  needs_review: 6,
+  developing: 10,
+  needs_review: 0,
 }
 
 export function xpForUnderstanding(u: ChallengeUnderstanding): number {

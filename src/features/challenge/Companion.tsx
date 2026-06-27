@@ -1,32 +1,26 @@
+import { PipCat, type PipMood } from './PipCat'
+
 interface CompanionProps {
   /** Optional speech-bubble message from the companion. */
   message?: string
   /** Optional XP total to show as a fish badge. */
   xp?: number
-  /** Companion mood drives the emoji expression. */
-  mood?: 'happy' | 'thinking' | 'celebrate'
+  /** Companion mood drives Pip's expression. */
+  mood?: PipMood
   className?: string
 }
 
-const FACE: Record<NonNullable<CompanionProps['mood']>, string> = {
-  happy: '🐱',
-  thinking: '🙀',
-  celebrate: '😸',
-}
-
 /**
- * Pip, the one default cat study companion for Challenge Mode. Deliberately
- * simple (emoji + bubble + fish XP) — no shop, inventory, or customization, per
- * the Phase 2 scope of "a cute companion that never overshadows the learning".
+ * Pip, the one default cat study companion for Challenge Mode. A custom SVG cat
+ * (see {@link PipCat}) with a speech bubble and fish XP — deliberately simple: no
+ * shop, inventory, or customization, per the Phase 2 scope of "a cute companion
+ * that never overshadows the learning".
  */
 export function Companion({ message, xp, mood = 'happy', className = '' }: CompanionProps) {
   return (
     <div className={`flex items-start gap-3 ${className}`}>
-      <div
-        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-100 text-3xl shadow-soft"
-        aria-hidden
-      >
-        {FACE[mood]}
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blush-100 shadow-soft">
+        <PipCat mood={mood} className="h-11 w-11" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">

@@ -31,7 +31,66 @@ export const arrangingDistinctObjectsLesson: Lesson = {
       body: 'You won Gold, Silver, and Bronze at a math contest. Each trophy is distinct — they look different and mean different things.',
       prompt:
         'How many different ways can you arrange these three trophies left-to-right on a shelf?',
-      nextButtonLabel: 'Let me try arranging them',
+      nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'worked-three',
+      type: 'worked-example',
+      title: 'Watch Me Count One',
+      body: 'Before you try, let me count the arrangements of the three trophies out loud — slot by slot.',
+      workedExampleConfig: {
+        items: trophyItems,
+        voice: 'nova',
+        script: [
+          {
+            say: 'Our job is to count how many different ways these three trophies can line up on the shelf. We have three distinct trophies — gold, silver, and bronze — and three slots to fill from left to right.',
+            highlight: 'pool',
+          },
+          {
+            say: 'For the first slot, any of the three trophies could go here, so that is 3 choices.',
+            highlight: 'slot-0',
+          },
+          {
+            say: 'Once the first slot is taken, only two trophies are left, so the second slot has 2 choices.',
+            highlight: 'slot-1',
+          },
+          {
+            say: 'That leaves a single trophy for the last slot — just 1 choice.',
+            highlight: 'slot-2',
+          },
+          {
+            say: 'The choices are separate, so we multiply them: three times two times one equals six arrangements.',
+            highlight: 'product',
+          },
+          {
+            say: 'And if I rearrange the trophies, I land on a different one of those six arrangements.',
+            highlight: 'pool',
+            anim: 'shuffle',
+          },
+        ],
+      },
+      concepts: ['permutation', 'distinct-objects', 'counting-principle'],
+    },
+    {
+      id: 'faded-three',
+      type: 'numeric-question',
+      title: 'Now You Finish It',
+      body: 'I set up the first two slots for you: 3 choices, then 2 choices. You finish the count — include the last slot — and tell me the total number of arrangements.',
+      prompt: 'Finish the count: 3 × 2 × 1 = ?',
+      question: {
+        inputType: 'numeric',
+        correctAnswer: 6,
+        tolerance: 0,
+        explanation: '3 × 2 × 1 = 6. The last slot has just 1 trophy left, and the separate choices multiply.',
+        misconceptionTags: ['undercount'],
+      },
+      feedback: {
+        correct: 'Exactly — 3 × 2 × 1 = 6 arrangements.',
+        incorrect: 'Multiply all three slots together: 3 × 2 × 1.',
+        hint: 'The first two slots gave 3 then 2. The last slot has only 1 trophy left — multiply the three slot counts.',
+        computationHint: '3 × 2 × 1 = 6.',
+      },
+      concepts: ['permutation', 'factorial'],
     },
     {
       id: 'explore-three',

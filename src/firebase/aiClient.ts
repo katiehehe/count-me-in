@@ -1,29 +1,35 @@
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { getFirebaseApp } from './firebaseClient'
+import { getFirebaseAuth } from './firebaseClient'
 
 export { isAiEnabled } from './aiConfig'
 
-type ChallengeAction = 'question' | 'evaluate' | 'shift'
-
-type FunctionsInstance = ReturnType<typeof getFunctions>
-let functionsInstance: FunctionsInstance | null = null
-
-function getFns(): FunctionsInstance {
-  if (!functionsInstance) functionsInstance = getFunctions(getFirebaseApp())
-  return functionsInstance
-}
+type ChallengeAction =
+  | 'question'
+  | 'evaluate'
+  | 'lesson_hint'
+  | 'lesson_hints'
+  | 'lesson_feedback'
+  | 'practice_reskin'
 
 /**
- * Calls the `challengeAi` Cloud Function, which runs OpenAI (gpt-4o) server-side
- * so the API key never reaches the browser. The function selects the strict JSON
- * response schema from `action` and returns structured output; callers normalize
- * the result (clamping enums, supplying fallbacks) in `ai/challengeAi.ts`.
+ * Calls the OpenAI proxy (a Cloudflare Worker) which runs OpenAI gpt-4o
+ * server-side so the API key never reaches the browser. We attach the learner's
+ * Firebase ID token; the Worker verifies it before spending any OpenAI budget.
+ * The Worker selects the strict JSON schema from `action` and returns structured
+ * output; callers normalize the result in `ai/challengeAi.ts`.
  */
 export async function callChallengeAi<T>(action: ChallengeAction, prompt: string): Promise<T> {
-  const callable = httpsCallable<{ action: ChallengeAction; prompt: string }, T>(
-    getFns(),
-    'challengeAi',
-  )
-  const result = await callable({ action, prompt })
-  return result.data
+  const url = import.meta.env.VITE_AI_PROXY_URL
+  if (!url) throw new Error('AI proxy URL is not configured (VITE_AI_PROXY_URL).')
+
+  const user = getFirebaseAuth().currentUser
+  if (!user) throw new Error('Must be signed in to use Challenge Mode.')
+  const token = await user.getIdToken()
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action, prompt }),
+  })
+  if (!res.ok) throw new Error(`AI proxy error ${res.status}`)
+  return (await res.json()) as T
 }

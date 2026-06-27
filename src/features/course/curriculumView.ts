@@ -89,7 +89,13 @@ export function buildCurriculum(
       const state = stateById.get(def.lessonId)
       const status: DisplayStatus = state?.status ?? 'locked'
       const gradedTotal = countGradedSteps(lesson.steps)
-      const gradedCorrect = state?.progress?.gradedCorrect
+      // Clamp the stored correct-count to the lesson's CURRENT graded-step count.
+      // If a lesson was edited to have fewer graded steps after a learner finished
+      // it, the old stored count (e.g. 9) must not render over the new total (8)
+      // as an impossible "9/8" / over-100%.
+      const storedCorrect = state?.progress?.gradedCorrect
+      const gradedCorrect =
+        typeof storedCorrect === 'number' ? Math.min(storedCorrect, gradedTotal) : storedCorrect
       const navigable = status !== 'locked' || devUnlock
 
       totalLessons += 1

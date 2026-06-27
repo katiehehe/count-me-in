@@ -12,6 +12,7 @@ export function Layout() {
 
   const rawName = profile?.displayName ?? user?.displayName ?? ''
   const firstName = rawName && rawName !== 'Learner' ? rawName.split(' ')[0] : ''
+  const companionXp = profile?.companionXp ?? 0
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -45,8 +46,19 @@ export function Layout() {
                   </Link>
                 )}
                 <div
+                  title={`${companionXp} XP earned with Pip`}
+                  className="flex items-center gap-1.5 rounded-full border border-lavender-200 bg-lavender-50 px-2.5 py-1.5 font-bold text-lavender-600 shadow-sm sm:px-3"
+                >
+                  <span aria-hidden className="text-base leading-none">
+                    ⭐
+                  </span>
+                  <span>{companionXp}</span>
+                  <span className="hidden sm:inline">XP</span>
+                  <span className="sr-only">experience points</span>
+                </div>
+                <div
                   title={`${profile?.streakCount ?? 0} day streak`}
-                  className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 font-bold text-amber-700 shadow-sm"
+                  className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1.5 font-bold text-amber-700 shadow-sm sm:px-3"
                 >
                   <span aria-hidden className="text-base leading-none">
                     🔥

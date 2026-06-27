@@ -16,11 +16,11 @@ export function InteractionGuide({ steps }: { steps: GuideStep[] }) {
   const next = steps.find((s) => !s.done)
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="mt-6 flex flex-col items-center gap-2">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="rounded-xl border-2 border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100"
+        className="text-xs font-medium text-slate-400 underline decoration-dotted underline-offset-4 transition-colors hover:text-brand-600"
       >
         🧭 Which button do I press?
       </button>

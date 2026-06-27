@@ -16,9 +16,9 @@ concept to real life. It gives brief, encouraging feedback, awards companion XP,
 and recommends a next step — without ever blocking progression.
 
 Code lives in `src/features/challenge/` (domain + UI), `src/firebase/aiClient.ts`
-(a thin client that calls our Cloud Function), and `functions/` (the OpenAI proxy
-that holds the API key server-side). The course, lesson engine, mastery, and
-unlocking from Phase 1 are unchanged.
+(a thin client that calls our proxy), and `worker/` (a Cloudflare Worker that holds
+the OpenAI key server-side). The course, lesson engine, mastery, and unlocking from
+Phase 1 are unchanged.
 
 ## Why Challenge Mode was chosen
 
@@ -90,7 +90,7 @@ the learner actually played, so prompts and answers match what they saw):
 This context is injected into every prompt (`challenge/ai/prompts.ts`) alongside a
 fixed persona that forbids off-topic/chatbot behavior. The model's outputs are
 constrained to typed JSON via OpenAI Structured Outputs (strict `json_schema`,
-defined server-side in `functions/src/index.ts`):
+defined server-side in `worker/src/index.ts`):
 
 - **Question:** `{ question, expectedConcepts[], feedbackStyle, companionMessage }`
 - **Evaluation:** `{ understanding, feedback, followUpQuestion?, misconceptionDetected?, recommendedNextAction, xpAwarded }`
@@ -125,12 +125,56 @@ generated answers are integer, positive, reproducible, and self-consistent acros
 all concepts and many seeds; `sessionPlan.test.ts` and `challengeXp.test.ts` cover
 the (AI-independent) session structure and scoring.
 
+## Expansion: in-lesson AI help, a sharper challenge, and XP
+
+After the first cut taught well, we deepened the AI's role inside the lessons
+themselves (not just the post-lesson challenge) and tightened the reward loop.
+
+**What we considered (from the Phase 2 menu).** Generating brand-new practice
+problems; targeted hints when stuck; an adaptive path that reorders lessons;
+plain-language explanations of wrong answers. We shipped the two that most
+directly help a struggling learner *in the moment* — **adaptive hints** and
+**wrong-answer feedback** — plus a lightweight version of "adapt the path":
+instead of silently reordering lessons, the AI **points back to the specific
+earlier step** that would help, and lets the learner choose to revisit it.
+
+**In-lesson AI (`lessonAi.ts`, `StepHelp.tsx`).** On any graded question:
+- **Ask Pip for a hint** — an adaptive nudge grounded in the question + concept,
+  never revealing the answer.
+- **"Why was that wrong?"** — appears after a wrong answer; feedback is tuned to
+  the learner's *actual* answer vs. the verified correct one.
+- **Relearn pointers** — both calls may return a `reviewStepId` chosen from the
+  earlier steps we pass in (validated in code, never a forward/unknown step). When
+  set, that progress-bar segment **glows** and a "Revisit" button appears; the hint
+  is stored on the step's state so it's still there when the learner comes back.
+
+**A sharper challenge.** The three near-identical "explain simpler / contest-style
+/ another example" buttons were cut (they repeated one idea). Challenge Mode is now
+a fixed 4-step arc — answer a review question, correct a mistake, explain your
+thinking, give a real-world example — so each turn exercises a distinct skill.
+
+**XP that means something.** XP scales with how well the learner does and is **0
+for an incorrect/needs-review answer**, so it reflects real understanding. It
+accumulates into a persistent total shown in the app header, giving a sense of
+progress over time. XP is always computed in code, never taken from the model.
+
+**Pip.** The companion is now a hand-drawn SVG cat (not an emoji) with happy /
+thinking / celebrate expressions, used both in the challenge and beside in-lesson
+hints — cute, but deliberately minimal (no shop, inventory, or customization).
+
+**Deliberately left out.** A free-form chatbot; AI *inventing* numeric problems or
+answers (we generate and check those in code); fully automatic lesson reordering
+(we surface a revisit suggestion and let the learner decide); heavy companion
+customization. All in-lesson AI is additive — with AI off, the hand-written
+two-tier hints render instead and nothing else changes.
+
 ## Safety and "works with AI off"
 
 - **Server-side key.** The OpenAI key never reaches the browser — it lives as a
-  Cloud Functions secret (`OPENAI_API_KEY`) and is used only inside the auth-gated
-  `challengeAi` callable, so unauthenticated clients can't spend the budget.
-  (Enabling App Check on the callable is a recommended further hardening.)
+  Cloudflare Worker secret (`OPENAI_API_KEY`). The browser calls the Worker with its
+  Firebase ID token, which the Worker cryptographically verifies (RS256 against
+  Google's public keys) before calling OpenAI, so unauthenticated clients can't
+  spend the budget.
 - **Graceful degradation.** With `VITE_AI_ENABLED=false` — or if an AI call fails,
   or the project isn't provisioned yet — the lesson flow is exactly as in Phase 1
   (results summary, next lesson), and the Challenge screen shows a friendly disabled

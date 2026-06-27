@@ -20,7 +20,44 @@ export const probabilityDistributionsLesson: Lesson = {
       title: 'Let’s Just Roll',
       body: 'Before any formulas, let’s build intuition by doing. A random game is easiest to understand by repeating it many, many times and watching what happens on average.',
       prompt: 'Big idea: do something random thousands of times, and patterns appear.',
-      nextButtonLabel: 'Roll some dice',
+      nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'worked-rolls',
+      type: 'worked-example',
+      title: 'Watch Me Count One',
+      body: 'Before we roll, let me predict the shape of many die rolls.',
+      workedExampleConfig: {
+        kind: 'distribution',
+        voice: 'nova',
+        distribution: {
+          bars: [
+            { label: '1', value: 1 },
+            { label: '2', value: 1 },
+            { label: '3', value: 1 },
+            { label: '4', value: 1 },
+            { label: '5', value: 1 },
+            { label: '6', value: 1 },
+          ],
+          caption: 'each face ≈ 1/6 ≈ 167 of 1000',
+          latex: '\\frac{1}{6} \\approx 167 \\text{ of } 1000',
+        },
+        script: [
+          {
+            say: 'Our job is to predict the shape of many die rolls — how often each face turns up over a thousand rolls. A fair die has six faces, and every one is equally likely.',
+            highlight: 'bars',
+          },
+          {
+            say: 'So if we roll it many times, each face should come up about one sixth of the time.',
+            highlight: 'bars',
+          },
+          {
+            say: 'One sixth of a thousand rolls is roughly one hundred sixty-seven, so the six bars should all settle near the same height.',
+            highlight: 'result',
+          },
+        ],
+      },
+      concepts: ['probability'],
     },
     {
       id: 'sim-dice',

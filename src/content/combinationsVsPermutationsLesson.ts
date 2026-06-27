@@ -22,7 +22,43 @@ export const combinationsVsPermutationsLesson: Lesson = {
       title: 'Order Matters — Or Does It?',
       body: 'Two situations sound similar but count differently. Awarding Gold, Silver, and Bronze to 3 of 5 runners depends on the ORDER (who gets which medal). Picking a 3-person committee from 5 does NOT — a committee is just a group, no order.',
       prompt: 'Permutations count ordered selections; combinations count unordered ones. Let’s see the difference.',
-      nextButtonLabel: 'Show me',
+      nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'worked-choose',
+      type: 'worked-example',
+      title: 'Watch Me Count One',
+      body: 'Let me show why order changes the count — choosing 2 of 3 friends: Ana, Ben, Cara.',
+      workedExampleConfig: {
+        kind: 'tree',
+        voice: 'nova',
+        tree: {
+          orderedLabel: 'Order matters',
+          groupedLabel: 'Just a team',
+          ordered: ['AB', 'BA', 'AC', 'CA', 'BC', 'CB'],
+          grouped: ['AB', 'AC', 'BC'],
+          divideBy: 2,
+        },
+        script: [
+          {
+            say: 'Our job is to count how many different two-person teams we can choose from Ana, Ben, and Cara — and to see why order changes the count.',
+            highlight: 'ordered',
+          },
+          {
+            say: 'If order matters — a first pick then a second — there are six ordered ways: A then B counts apart from B then A.',
+            highlight: 'ordered',
+          },
+          {
+            say: 'But a team has no order, so A-and-B is the same team as B-and-A. Each team got counted twice, once for each of the two orders.',
+            highlight: 'grouped',
+          },
+          {
+            say: 'So we divide the six ordered ways by two: six divided by two equals three different teams.',
+            highlight: 'product',
+          },
+        ],
+      },
+      concepts: ['combinations', 'permutation'],
     },
     {
       id: 'condense-identical',

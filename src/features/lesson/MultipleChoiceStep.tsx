@@ -1,6 +1,6 @@
 import { FeedbackBox } from '../../components/FeedbackBox'
-import { HintButton } from '../../components/HintButton'
 import type { FeedbackMap, Question } from '../../content/types'
+import { StepHelp, type StepAiHelp } from './StepHelp'
 
 interface MultipleChoiceStepProps {
   prompt?: string
@@ -20,6 +20,13 @@ interface MultipleChoiceStepProps {
   allowChange?: boolean
   /** Sticky: the learner has already chosen the correct answer at least once. */
   everCorrect?: boolean
+  /** In-lesson AI help wiring (omitted when AI is off). */
+  aiHelp?: StepAiHelp | null
+  aiBusy?: boolean
+  onRequestHint?: () => void
+  onRequestFeedback?: () => void
+  onRevisit?: (stepId: string) => void
+  reviewStepTitle?: string
 }
 
 export function MultipleChoiceStep({
@@ -34,6 +41,12 @@ export function MultipleChoiceStep({
   selectedIndex,
   allowChange = false,
   everCorrect = false,
+  aiHelp,
+  aiBusy,
+  onRequestHint,
+  onRequestFeedback,
+  onRevisit,
+  reviewStepTitle,
 }: MultipleChoiceStepProps) {
   const isCorrect = selectedIndex === question.correctChoiceIndex
   // Lesson questions never lock — even after a correct pick the learner can tap
@@ -110,7 +123,19 @@ export function MultipleChoiceStep({
             : 'Pick another answer to try again.'}
         </p>
       )}
-      {!locked && <HintButton hint={hint} computationHint={computationHint} />}
+      {!locked && (
+        <StepHelp
+          hint={hint}
+          computationHint={computationHint}
+          aiHelp={aiHelp}
+          aiBusy={aiBusy}
+          wrong={!!showResult && !isCorrect}
+          onRequestHint={onRequestHint}
+          onRequestFeedback={onRequestFeedback}
+          onRevisit={onRevisit}
+          reviewStepTitle={reviewStepTitle}
+        />
+      )}
     </div>
   )
 }

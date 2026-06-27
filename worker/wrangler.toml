@@ -1,0 +1,9 @@
+name = "count-me-in-ai"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+# Public (non-secret) config. The OpenAI key is NOT here — set it as a secret:
+#   cd worker && npx wrangler secret put OPENAI_API_KEY
+[vars]
+FIREBASE_PROJECT_ID = "count-me-in-2cdc6"
+ALLOWED_ORIGINS = "https://count-me-in-2cdc6.web.app,https://count-me-in-2cdc6.firebaseapp.com,http://localhost:5173"

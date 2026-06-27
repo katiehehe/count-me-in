@@ -283,6 +283,25 @@
     animation: step-in-back 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
+  /* Worked-example whiteboard: an element pops into view as Pip mentions it. */
+  @keyframes cmi-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.55);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .cmi-pop {
+    animation: cmi-pop 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
   /* Generic gentle fade-up for cards/sections entering the view. */
   @keyframes fade-up {
     from {
@@ -413,6 +432,7 @@
     .animate-step-forward,
     .animate-step-back,
     .animate-fade-up,
+    .cmi-pop,
     .tree-branch::before,
     .tree-leaf::before,
     .tree-leaf::after {

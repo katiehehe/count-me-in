@@ -113,26 +113,3 @@ export function buildEvaluationPrompt(args: {
   ].join('\n')
 }
 
-/** Prompt for the small "Explain simpler / contest-style / another example" option. */
-export function buildDifficultyShiftPrompt(args: {
-  ctx: ChallengeGroundingContext
-  question: string
-  mode: 'simpler' | 'contest' | 'example'
-}): string {
-  const { ctx, question, mode } = args
-  const ask =
-    mode === 'simpler'
-      ? 'Explain the idea behind this question in simpler, more beginner-friendly terms.'
-      : mode === 'contest'
-        ? 'Explain the idea behind this question in a more contest/competition-savvy style.'
-        : 'Give one more concrete example that illustrates the idea behind this question.'
-  return [
-    PERSONA,
-    '',
-    groundingBlock(ctx),
-    '',
-    `The learner is looking at this question: "${question}"`,
-    `Task: ${ask} Keep it to 1-3 sentences, in character as Pip.`,
-    'Return JSON matching the schema: companionMessage.',
-  ].join('\n')
-}

@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { getLessonById, getNextLesson } from '../../content/course'
-import { makeSeed } from '../../content/randomize'
 import { CONCEPT_LABELS } from '../../content/types'
 import { isAiEnabled } from '../../firebase/aiConfig'
 import { useAuth } from '../auth/AuthProvider'
@@ -29,7 +28,6 @@ type Phase = 'loading' | 'transition' | 'conversation' | 'summary' | 'disabled'
 interface SummaryData {
   overall: ChallengeUnderstanding
   xpEarned: number
-  conceptsUnderstood: string[]
   conceptsToReview: string[]
   recommended: RecommendedNextAction
 }
@@ -43,6 +41,8 @@ interface SummaryData {
 export function ChallengePage() {
   const { lessonId } = useParams<{ lessonId: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fromReview = searchParams.get('from') === 'weekly-review'
   const { user, refreshProfile } = useAuth()
   const lesson = lessonId ? getLessonById(lessonId) : undefined
   const nextLesson = lessonId ? getNextLesson(lessonId) : null
@@ -67,7 +67,7 @@ export function ChallengePage() {
         navigate('/course', { replace: true })
         return
       }
-      const planned = planSession(built, makeSeed())
+      const planned = planSession(built)
       let sid = `local-${Date.now()}`
       try {
         sid = await createChallengeSession(user.uid, lessonId)
@@ -88,26 +88,27 @@ export function ChallengePage() {
   const goNextLesson = () => navigate(nextLesson ? `/lesson/${nextLesson.id}` : '/course')
   const goReviewLesson = () => navigate(`/lesson/${lessonId}`)
   const goCourse = () => navigate('/course')
+  const goReview = () => navigate('/weekly-review')
 
   async function handleComplete(items: ChallengeAnsweredItem[]) {
     const overall = summarizeUnderstanding(items.map((i) => i.understanding))
     const recommended = recommendedAction(overall)
     const xpEarned = items.reduce((sum, i) => sum + i.xpAwarded, 0)
 
-    const conceptLabels = (ctx?.concepts ?? []).map((c) => CONCEPT_LABELS[c] ?? c)
-    const misconceptions = Array.from(
-      new Set(items.map((i) => i.misconceptionDetected).filter((m): m is string => Boolean(m))),
-    )
-    const conceptsToReview =
-      overall === 'strong'
-        ? misconceptions
-        : Array.from(new Set([...conceptLabels, ...misconceptions]))
-    const conceptsUnderstood =
-      overall === 'strong'
-        ? conceptLabels
-        : conceptLabels.filter((c) => !conceptsToReview.includes(c))
+    // Only surface SPECIFIC misconceptions the learner actually showed — not the
+    // lesson's own concept names (they already know which lesson it was). Drop AI
+    // "misconceptions" that are just a concept id/label echo, e.g. raw
+    // "counting-principle" duplicating "Counting Principle".
+    const conceptTerms = new Set<string>()
+    for (const c of ctx?.concepts ?? []) {
+      conceptTerms.add(c.toLowerCase())
+      conceptTerms.add((CONCEPT_LABELS[c] ?? c).toLowerCase())
+    }
+    const conceptsToReview = Array.from(
+      new Set(items.map((i) => i.misconceptionDetected?.trim()).filter((m): m is string => Boolean(m))),
+    ).filter((m) => !conceptTerms.has(m.toLowerCase()))
 
-    setSummary({ overall, xpEarned, conceptsUnderstood, conceptsToReview, recommended })
+    setSummary({ overall, xpEarned, conceptsToReview, recommended })
     setPhase('summary')
 
     if (user) {
@@ -147,8 +148,8 @@ export function ChallengePage() {
             <Button variant="secondary" onClick={goReviewLesson}>
               Review this lesson
             </Button>
-            <Button variant="ghost" onClick={goCourse}>
-              Back to course
+            <Button variant="ghost" onClick={fromReview ? goReview : goCourse}>
+              {fromReview ? 'Back to review' : 'Back to course'}
             </Button>
           </div>
         </Card>
@@ -166,11 +167,7 @@ export function ChallengePage() {
 
   if (phase === 'transition') {
     return (
-      <ChallengeTransition
-        onStart={() => setPhase('conversation')}
-        onSkip={goReviewLesson}
-        busy={!sessionId}
-      />
+      <ChallengeTransition onStart={() => setPhase('conversation')} busy={!sessionId} />
     )
   }
 
@@ -179,13 +176,13 @@ export function ChallengePage() {
       <ChallengeSummary
         overall={summary.overall}
         xpEarned={summary.xpEarned}
-        conceptsUnderstood={summary.conceptsUnderstood}
         conceptsToReview={summary.conceptsToReview}
         recommended={summary.recommended}
         hasNextLesson={Boolean(nextLesson)}
         onNextLesson={goNextLesson}
         onReviewLesson={goReviewLesson}
-        onBackToCourse={goCourse}
+        onBackToCourse={fromReview ? goReview : goCourse}
+        backLabel={fromReview ? 'Back to review' : undefined}
       />
     )
   }

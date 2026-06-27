@@ -12,12 +12,17 @@ import { OutcomeSelect } from '../simulation/OutcomeSelect'
 import { CombinationCondense } from '../simulation/CombinationCondense'
 import { CombinedExperiment } from '../simulation/CombinedExperiment'
 import { DependencePairing } from '../simulation/DependencePairing'
+import { ConditionalSelect } from '../simulation/ConditionalSelect'
+import { ComplementSelect } from '../simulation/ComplementSelect'
+import { CoinFlipSim } from '../simulation/CoinFlipSim'
 import { ExpectedValueRoller } from '../simulation/ExpectedValueRoller'
 import { ProductGrid } from '../simulation/ProductGrid'
 import { MultisetCondense } from '../simulation/MultisetCondense'
 import { MultipleChoiceStep } from './MultipleChoiceStep'
 import { NumericQuestionStep } from './NumericQuestionStep'
 import { FractionQuestionStep } from './FractionQuestionStep'
+import { WorkedExampleStep } from './WorkedExampleStep'
+import type { StepAiHelp } from './StepHelp'
 
 export interface StepState {
   answered: boolean
@@ -41,15 +46,39 @@ export interface StepState {
   evSimDone?: boolean
   productGridDone?: boolean
   multisetCondenseDone?: boolean
+  workedExampleDone?: boolean
+  conditionalSelectDone?: boolean
+  complementSelectDone?: boolean
+  coinSimDone?: boolean
+  /** In-lesson AI help (hint or wrong-answer feedback) for graded questions. */
+  aiHelp?: StepAiHelp | null
 }
 
 interface StepRendererProps {
   step: LessonStep
   stepState: StepState
   onStepUpdate: (update: Partial<StepState>) => void
+  /** In-lesson AI help wiring (omitted when AI is off → static hints render). */
+  aiBusy?: boolean
+  onRequestHint?: () => void
+  onRequestFeedback?: () => void
+  onRevisit?: (stepId: string) => void
+  reviewStepTitle?: string
+  /** Advance to the next step (used for one-press Enter on a correct typed answer). */
+  onEnterAdvance?: () => void
 }
 
-export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProps) {
+export function StepRenderer({
+  step,
+  stepState,
+  onStepUpdate,
+  aiBusy,
+  onRequestHint,
+  onRequestFeedback,
+  onRevisit,
+  reviewStepTitle,
+  onEnterAdvance,
+}: StepRendererProps) {
   switch (step.type) {
     case 'intro':
       return (
@@ -336,6 +365,83 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
         </div>
       )
 
+    case 'worked-example':
+      return (
+        <div>
+          {step.body && <p className="mb-4 text-slate-700">{step.body}</p>}
+          {step.workedExampleConfig && (
+            <WorkedExampleStep
+              config={step.workedExampleConfig}
+              onDone={() => onStepUpdate({ workedExampleDone: true })}
+            />
+          )}
+        </div>
+      )
+
+    case 'conditional-select':
+      return (
+        <div>
+          <p className="mb-4 text-slate-700">{step.body}</p>
+          {step.conditionalSelectConfig && (
+            <ConditionalSelect
+              outcomes={step.conditionalSelectConfig.outcomes}
+              givenIds={step.conditionalSelectConfig.givenIds}
+              favorableIds={step.conditionalSelectConfig.favorableIds}
+              givenLabel={step.conditionalSelectConfig.givenLabel}
+              favorableLabel={step.conditionalSelectConfig.favorableLabel}
+              onComplete={() => onStepUpdate({ conditionalSelectDone: true })}
+            />
+          )}
+          {!stepState.conditionalSelectDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.conditionalSelectDone && step.feedback?.correct && (
+            <FeedbackBox variant="correct" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
+    case 'complement-select':
+      return (
+        <div>
+          <p className="mb-4 text-slate-700">{step.body}</p>
+          {step.complementSelectConfig && (
+            <ComplementSelect
+              outcomes={step.complementSelectConfig.outcomes}
+              complementIds={step.complementSelectConfig.complementIds}
+              complementLabel={step.complementSelectConfig.complementLabel}
+              eventLabel={step.complementSelectConfig.eventLabel}
+              columns={step.complementSelectConfig.columns}
+              onComplete={() => onStepUpdate({ complementSelectDone: true })}
+            />
+          )}
+          {!stepState.complementSelectDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.complementSelectDone && step.feedback?.correct && (
+            <FeedbackBox variant="correct" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
+    case 'coin-flip-sim':
+      return (
+        <div>
+          <p className="mb-4 text-slate-700">{step.body}</p>
+          <CoinFlipSim
+            coins={step.coinFlipSimConfig?.coins}
+            showIndicators={step.coinFlipSimConfig?.showIndicators}
+            onComplete={() => onStepUpdate({ coinSimDone: true })}
+          />
+          {!stepState.coinSimDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.coinSimDone && step.feedback?.correct && (
+            <FeedbackBox variant="neutral" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
     case 'multiple-choice':
       return step.question ? (
         <div>
@@ -354,6 +460,12 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
             }
             showResult={stepState.answered}
             selectedIndex={stepState.selectedIndex}
+            aiHelp={stepState.aiHelp}
+            aiBusy={aiBusy}
+            onRequestHint={onRequestHint}
+            onRequestFeedback={onRequestFeedback}
+            onRevisit={onRevisit}
+            reviewStepTitle={reviewStepTitle}
           />
         </div>
       ) : null
@@ -371,6 +483,13 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
             onAnswer={(value, correct) => onStepUpdate({ answered: true, correct, answer: value })}
             showResult={stepState.answered}
             lastAnswer={typeof stepState.answer === 'number' ? stepState.answer : null}
+            aiHelp={stepState.aiHelp}
+            aiBusy={aiBusy}
+            onRequestHint={onRequestHint}
+            onRequestFeedback={onRequestFeedback}
+            onRevisit={onRevisit}
+            reviewStepTitle={reviewStepTitle}
+            onEnterAdvance={onEnterAdvance}
           />
         </div>
       ) : null
@@ -388,6 +507,13 @@ export function StepRenderer({ step, stepState, onStepUpdate }: StepRendererProp
             onAnswer={(value, correct) => onStepUpdate({ answered: true, correct, answer: value })}
             showResult={stepState.answered}
             lastAnswer={typeof stepState.answer === 'string' ? stepState.answer : null}
+            aiHelp={stepState.aiHelp}
+            aiBusy={aiBusy}
+            onRequestHint={onRequestHint}
+            onRequestFeedback={onRequestFeedback}
+            onRevisit={onRevisit}
+            reviewStepTitle={reviewStepTitle}
+            onEnterAdvance={onEnterAdvance}
           />
         </div>
       ) : null
@@ -439,6 +565,14 @@ export function interactiveDoneState(type: StepType): Partial<StepState> {
       return { multisetCondenseDone: true }
     case 'factorial-discovery':
       return { factorialDone: true }
+    case 'worked-example':
+      return { workedExampleDone: true }
+    case 'conditional-select':
+      return { conditionalSelectDone: true }
+    case 'complement-select':
+      return { complementSelectDone: true }
+    case 'coin-flip-sim':
+      return { coinSimDone: true }
     default:
       return {}
   }
@@ -477,6 +611,14 @@ export function canAdvance(step: LessonStep, stepState: StepState): boolean {
       return stepState.multisetCondenseDone === true
     case 'factorial-discovery':
       return stepState.factorialDone === true
+    case 'worked-example':
+      return stepState.workedExampleDone === true
+    case 'conditional-select':
+      return stepState.conditionalSelectDone === true
+    case 'complement-select':
+      return stepState.complementSelectDone === true
+    case 'coin-flip-sim':
+      return stepState.coinSimDone === true
     case 'multiple-choice':
     case 'numeric-question':
     case 'fraction-question':

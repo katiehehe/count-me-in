@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Button } from '../../components/Button'
 import { FeedbackBox } from '../../components/FeedbackBox'
-import { HintButton } from '../../components/HintButton'
 import type { FeedbackMap, Question } from '../../content/types'
+import { StepHelp, type StepAiHelp } from './StepHelp'
 
 interface NumericQuestionStepProps {
   prompt?: string
@@ -14,6 +14,14 @@ interface NumericQuestionStepProps {
   disabled?: boolean
   showResult?: boolean
   lastAnswer?: number | null
+  aiHelp?: StepAiHelp | null
+  aiBusy?: boolean
+  onRequestHint?: () => void
+  onRequestFeedback?: () => void
+  onRevisit?: (stepId: string) => void
+  reviewStepTitle?: string
+  /** Called when an Enter-submitted answer is correct → advance to the next step. */
+  onEnterAdvance?: () => void
 }
 
 export function NumericQuestionStep({
@@ -26,6 +34,13 @@ export function NumericQuestionStep({
   disabled,
   showResult,
   lastAnswer,
+  aiHelp,
+  aiBusy,
+  onRequestHint,
+  onRequestFeedback,
+  onRevisit,
+  reviewStepTitle,
+  onEnterAdvance,
 }: NumericQuestionStepProps) {
   const [value, setValue] = useState(
     lastAnswer !== null && lastAnswer !== undefined ? String(lastAnswer) : '',
@@ -45,10 +60,12 @@ export function NumericQuestionStep({
   // re-check immediately — no "Try again" step. Once correct, it locks.
   const locked = !!isCorrect
 
-  const handleSubmit = () => {
+  const handleSubmit = (): boolean => {
     const num = parseFloat(value)
-    if (isNaN(num)) return
-    onAnswer(num, checkValue(num))
+    if (isNaN(num)) return false
+    const correct = checkValue(num)
+    onAnswer(num, correct)
+    return correct
   }
 
   return (
@@ -56,15 +73,19 @@ export function NumericQuestionStep({
       {prompt && <p className="mb-4 text-base font-medium text-slate-800 sm:text-lg">{prompt}</p>}
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
-          type="number"
-          inputMode="numeric"
+          type="text"
+          inputMode="decimal"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onWheel={(e) => e.currentTarget.blur()}
+          onChange={(e) => setValue(e.target.value.replace(/[^0-9.]/g, ''))}
           disabled={disabled || locked}
           placeholder="Type your answer"
           className="flex-1 rounded-2xl border-2 border-brand-100 bg-white px-4 py-3 font-mono text-base focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100 sm:text-lg"
-          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            // One press: a correct typed answer advances; a wrong one stays on its feedback.
+            if (handleSubmit()) onEnterAdvance?.()
+          }}
         />
         {!locked && (
           <Button onClick={handleSubmit} disabled={!value || disabled}>
@@ -88,7 +109,19 @@ export function NumericQuestionStep({
           Edit your number above and check again.
         </p>
       )}
-      {!locked && <HintButton hint={hint} computationHint={computationHint} />}
+      {!locked && (
+        <StepHelp
+          hint={hint}
+          computationHint={computationHint}
+          aiHelp={aiHelp}
+          aiBusy={aiBusy}
+          wrong={!!showResult && !isCorrect}
+          onRequestHint={onRequestHint}
+          onRequestFeedback={onRequestFeedback}
+          onRevisit={onRevisit}
+          reviewStepTitle={reviewStepTitle}
+        />
+      )}
     </div>
   )
 }

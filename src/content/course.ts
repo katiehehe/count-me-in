@@ -1,11 +1,39 @@
+/**
+ * The course: the flat, ordered list of lessons (order = unlock order).
+ *
+ * Adding a lesson:
+ *  1. Create the lesson module in `src/content/`, then import + add it to
+ *     `course.lessons` below.
+ *  2. Add it to a unit in `curriculum.ts` so it shows on the course page.
+ *
+ * The Phase 2 AI features apply automatically — there is NO per-lesson wiring:
+ *  - In-lesson "Ask Pip" hints + "Why was that wrong?" feedback + relearn
+ *    pointers render for every graded step (multiple-choice / numeric / fraction)
+ *    through the shared `StepRenderer` → `StepHelp`.
+ *  - Challenge Mode runs after completion for every lesson (`LessonRenderer`
+ *    routes to `/challenge/:lessonId`), grounded in the lesson's concepts and the
+ *    learner's recorded mistakes.
+ *
+ * The only thing a brand-NEW concept id needs (enforced by `content.test.ts`):
+ *  - a label in `CONCEPT_LABELS` (`types.ts`), and
+ *  - a transfer generator in `features/challenge/transferQuestions.ts` so the
+ *    challenge's review question is code-checked (without one it gracefully falls
+ *    back to an "explain it back" question).
+ */
 import type { Course } from './types'
 import { countingPrincipleLesson } from './countingPrincipleLesson'
 import { arrangingDistinctObjectsLesson } from './arrangingDistinctObjectsLesson'
 import { identicalObjectsLesson } from './identicalObjectsLesson'
 import { combinationsVsPermutationsLesson } from './combinationsVsPermutationsLesson'
 import { independentEventsLesson } from './independentEventsLesson'
+import { dependentEventsLesson } from './dependentEventsLesson'
+import { conditionalProbabilityLesson } from './conditionalProbabilityLesson'
+import { complementRuleLesson } from './complementRuleLesson'
 import { probabilityDistributionsLesson } from './probabilityDistributionsLesson'
 import { expectedValueLesson } from './expectedValueLesson'
+import { linearityOfExpectationLesson } from './linearityOfExpectationLesson'
+import { indicatorVariablesLesson } from './indicatorVariablesLesson'
+import { puttingItTogetherLesson } from './puttingItTogetherLesson'
 
 export const course: Course = {
   id: 'contest-counting',
@@ -19,8 +47,14 @@ export const course: Course = {
     identicalObjectsLesson,
     combinationsVsPermutationsLesson,
     independentEventsLesson,
+    dependentEventsLesson,
+    conditionalProbabilityLesson,
+    complementRuleLesson,
     probabilityDistributionsLesson,
     expectedValueLesson,
+    linearityOfExpectationLesson,
+    indicatorVariablesLesson,
+    puttingItTogetherLesson,
   ],
 }
 

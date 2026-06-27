@@ -9,7 +9,9 @@ describe('xpForUnderstanding', () => {
   it('awards more XP for stronger understanding', () => {
     expect(xpForUnderstanding('strong')).toBeGreaterThan(xpForUnderstanding('developing'))
     expect(xpForUnderstanding('developing')).toBeGreaterThan(xpForUnderstanding('needs_review'))
-    expect(xpForUnderstanding('needs_review')).toBeGreaterThan(0)
+  })
+  it('awards 0 XP for an incorrect / needs-review answer', () => {
+    expect(xpForUnderstanding('needs_review')).toBe(0)
   })
 })
 

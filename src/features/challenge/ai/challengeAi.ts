@@ -7,7 +7,7 @@ import type {
   ChallengeUnderstanding,
   RecommendedNextAction,
 } from '../challengeTypes'
-import { buildDifficultyShiftPrompt, buildEvaluationPrompt, buildQuestionPrompt } from './prompts'
+import { buildEvaluationPrompt, buildQuestionPrompt } from './prompts'
 
 const UNDERSTANDINGS: readonly ChallengeUnderstanding[] = ['strong', 'developing', 'needs_review']
 const ACTIONS: readonly RecommendedNextAction[] = ['continue', 'review_lesson', 'try_practice']
@@ -55,16 +55,4 @@ export async function evaluateChallengeResponse(args: {
     recommendedNextAction: clampEnum(raw.recommendedNextAction, ACTIONS, 'continue'),
     xpAwarded: typeof raw.xpAwarded === 'number' ? raw.xpAwarded : 0,
   }
-}
-
-export async function requestDifficultyShift(
-  ctx: ChallengeGroundingContext,
-  question: string,
-  mode: 'simpler' | 'contest' | 'example',
-): Promise<string> {
-  const raw = await callChallengeAi<{ companionMessage?: string }>(
-    'shift',
-    buildDifficultyShiftPrompt({ ctx, question, mode }),
-  )
-  return (raw.companionMessage ?? '').trim()
 }

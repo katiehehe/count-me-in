@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore'
 import type { LessonProgressDoc, UserProfile } from '../../firebase/firestoreTypes'
+import { initialSrsState, scheduleNext } from '../practice/conceptSrs'
 import { todayDateString, updateStreak } from './streaks'
 
 /**
@@ -62,6 +63,77 @@ export async function awardCompanionXp(uid: string, amount: number) {
   if (!profile) return
   profile.companionXp = (profile.companionXp ?? 0) + amount
   profile.updatedAt = Timestamp.now()
+}
+
+export async function markWeeklyReviewDone(uid: string, weakLessonIds: string[]) {
+  const profile = profiles.get(uid)
+  if (!profile) return
+  profile.lastWeeklyReviewAt = todayDateString()
+  profile.weeklyReviewWeakLessons = weakLessonIds
+  profile.updatedAt = Timestamp.now()
+}
+
+export async function recordConceptReview(uid: string, conceptId: string, correct: boolean) {
+  const profile = profiles.get(uid)
+  if (!profile) return
+  const today = todayDateString()
+  const conceptSrs = profile.conceptSrs ?? {}
+  const prev = conceptSrs[conceptId] ?? initialSrsState(today)
+  conceptSrs[conceptId] = scheduleNext(prev, correct, today)
+  profile.conceptSrs = conceptSrs
+  profile.updatedAt = Timestamp.now()
+}
+
+export async function seedConceptSrs(uid: string, conceptIds: string[]) {
+  const profile = profiles.get(uid)
+  if (!profile) return
+  const today = todayDateString()
+  const conceptSrs = profile.conceptSrs ?? {}
+  for (const id of conceptIds) {
+    if (!conceptSrs[id]) conceptSrs[id] = initialSrsState(today)
+  }
+  profile.conceptSrs = conceptSrs
+  profile.updatedAt = Timestamp.now()
+}
+
+export async function recordConceptPractice(uid: string, conceptId: string, correct: boolean) {
+  const profile = profiles.get(uid)
+  if (!profile) return
+  const conceptStats = profile.conceptStats ?? {}
+  const prev = conceptStats[conceptId] ?? { correct: 0, wrong: 0 }
+  conceptStats[conceptId] = correct
+    ? { correct: prev.correct + 1, wrong: prev.wrong }
+    : { correct: prev.correct, wrong: prev.wrong + 1 }
+  profile.conceptStats = conceptStats
+  profile.updatedAt = Timestamp.now()
+}
+
+const PRACTICE_MASTERY_STEP = 0.08
+
+export async function bumpMasteryFromPractice(uid: string, lessonId: string, gradedTotal?: number) {
+  const existing = lessonsFor(uid).get(lessonId)
+  if (!existing) return
+  const current = existing.masteryScore ?? 0
+  const next = Math.min(1, current + PRACTICE_MASTERY_STEP)
+  if (next <= current) return
+  const total = gradedTotal || existing.gradedTotal || 0
+  await saveLessonProgress(uid, {
+    lessonId,
+    masteryScore: next,
+    ...(total ? { gradedCorrect: Math.round(next * total), gradedTotal: total } : {}),
+  })
+}
+
+const REVIEW_MASTERY_PENALTY = 0.1
+
+export async function lowerMasteryFromReview(uid: string, lessonId: string, gradedTotal?: number) {
+  void gradedTotal
+  const existing = lessonsFor(uid).get(lessonId)
+  if (!existing) return
+  const current = existing.masteryScore ?? 0
+  const next = Math.max(0, current - REVIEW_MASTERY_PENALTY)
+  if (next === current) return
+  await saveLessonProgress(uid, { lessonId, masteryScore: next })
 }
 
 export async function updateDisplayName(uid: string, displayName: string) {
@@ -202,8 +274,9 @@ export async function completeLesson(
 
   const keepNew = masteryScore >= (existing?.masteryScore ?? 0)
   const bestMasteryScore = keepNew ? masteryScore : existing!.masteryScore
+  // Keep gradedCorrect and gradedTotal paired from the same (kept) run.
   const bestGradedCorrect = keepNew ? gradedCorrect ?? existing?.gradedCorrect : existing?.gradedCorrect
-  const bestGradedTotal = gradedTotal ?? existing?.gradedTotal
+  const bestGradedTotal = keepNew ? gradedTotal ?? existing?.gradedTotal : existing?.gradedTotal
   const bestConceptMastery = { ...(existing?.conceptMastery ?? {}) }
   for (const [id, score] of Object.entries(conceptMastery)) {
     bestConceptMastery[id] = Math.max(bestConceptMastery[id] ?? 0, score)

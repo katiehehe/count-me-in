@@ -126,6 +126,82 @@ function expectedCountQ(rng: Rng): Generated {
   }
 }
 
+function dependentQ(rng: Rng): Generated {
+  const red = intIn(rng, 4, 8)
+  const blue = intIn(rng, 2, 5)
+  const total = red + blue
+  return {
+    kind: 'dependent-events',
+    prompt: `A drawer has ${red} red and ${blue} blue socks (${total} total). You pull two socks one after another without putting the first back. In how many ordered ways can you pull two red socks?`,
+    answer: red * (red - 1),
+    formula: `${red} × ${red - 1}`,
+  }
+}
+
+function conditionalQ(rng: Rng): Generated {
+  const choice = pick(rng, [
+    { label: 'hearts', count: 3 },
+    { label: 'red (hearts or diamonds)', count: 6 },
+    { label: 'black (spades or clubs)', count: 6 },
+    { label: 'spades', count: 3 },
+  ] as const)
+  return {
+    kind: 'conditional-probability',
+    prompt: `From a standard 52-card deck you are told the card is a FACE card (the 12 Jacks, Queens, and Kings). Restricting to those 12 equally likely cards, how many are ${choice.label}?`,
+    answer: choice.count,
+    formula: `count of ${choice.label} among the 12 face cards`,
+  }
+}
+
+function complementQ(rng: Rng): Generated {
+  const n = pick(rng, [2, 3])
+  const total = 6 ** n
+  const none = 5 ** n
+  return {
+    kind: 'complement-rule',
+    prompt: `You roll ${n} fair dice (${total} equally likely outcomes). How many of those outcomes show AT LEAST ONE six?`,
+    answer: total - none,
+    formula: `${total} − ${none}`,
+  }
+}
+
+function indicatorQ(rng: Rng): Generated {
+  const item = pick(rng, ['name', 'hat', 'gift'] as const)
+  const n = pick(rng, [5, 6, 8, 10])
+  return {
+    kind: 'indicator-variables',
+    prompt: `${n} people each put their ${item} in a pile and take one back at random. By the indicator method, what is the expected number of people who get their OWN ${item}?`,
+    answer: 1,
+    formula: `${n} × 1/${n}`,
+  }
+}
+
+function synthesisQ(rng: Rng): Generated {
+  const target = pick(rng, [
+    { name: 'an ace', m: 4 },
+    { name: 'a king', m: 4 },
+    { name: 'a heart', m: 13 },
+  ] as const)
+  const total = 52 * 51
+  const none = (52 - target.m) * (51 - target.m)
+  return {
+    kind: 'synthesis',
+    prompt: `You deal 2 cards from a 52-card deck one after another (order matters, no replacement). In how many of the ${total} ordered deals is AT LEAST ONE card ${target.name}? (Complement rule + dependent counting.)`,
+    answer: total - none,
+    formula: `52 × 51 − ${52 - target.m} × ${51 - target.m}`,
+  }
+}
+
+function linearityQ(rng: Rng): Generated {
+  const dice = 6 * pick(rng, [1, 2, 3])
+  return {
+    kind: 'linearity-expectation',
+    prompt: `You roll ${dice} fair six-sided dice. By linearity of expectation, what is the expected number of sixes?`,
+    answer: dice / 6,
+    formula: `${dice} × 1/6`,
+  }
+}
+
 const GENERATORS: Record<string, (rng: Rng) => Generated> = {
   'counting-principle': countingPrincipleQ,
   permutation: nprQ,
@@ -135,6 +211,12 @@ const GENERATORS: Record<string, (rng: Rng) => Generated> = {
   'multiset-permutation': multisetQ,
   combinations: combinationsQ,
   'independent-events': independentQ,
+  'dependent-events': dependentQ,
+  'conditional-probability': conditionalQ,
+  'complement-rule': complementQ,
+  'linearity-expectation': linearityQ,
+  'indicator-variables': indicatorQ,
+  synthesis: synthesisQ,
   probability: expectedCountQ,
   'expected-value': expectedCountQ,
 }

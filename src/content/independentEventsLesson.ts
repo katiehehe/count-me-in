@@ -30,7 +30,40 @@ export const independentEventsLesson: Lesson = {
       title: 'Two Events at Once',
       body: 'Two events are INDEPENDENT when one does not change the odds of the other — like a coin flip and a die roll. The counting principle from earlier turns into a rule for probability: to get the chance of BOTH happening, multiply their individual probabilities.',
       prompt: 'P(A and B) = P(A) × P(B) when A and B are independent.',
-      nextButtonLabel: 'Let’s try it',
+      nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'worked-coin-die',
+      type: 'worked-example',
+      title: 'Watch Me Count One',
+      body: 'Let me find the chance of Heads AND a 6 by counting the combined outcomes.',
+      workedExampleConfig: {
+        kind: 'connections',
+        voice: 'nova',
+        connections: {
+          leftLabel: 'Coin',
+          rightLabel: 'Die',
+          left: coinOutcomes,
+          right: dieOutcomes,
+          pairingLabel: 'outcome',
+        },
+        script: [
+          {
+            say: 'Our job is to find the probability of getting Heads and a six together — one coin flip and one die roll. Start with the coin: two equally likely sides, Heads and Tails.',
+            highlight: 'left',
+          },
+          { say: 'A die has six equally likely faces, one through six.', highlight: 'right' },
+          {
+            say: 'Each coin side pairs with each die face, so there are two times six — twelve — equally likely combined outcomes.',
+            highlight: 'product',
+          },
+          {
+            say: 'Only one of those twelve is Heads and a six, so the probability is one out of twelve — the same as one-half times one-sixth.',
+            highlight: 'product',
+          },
+        ],
+      },
+      concepts: ['independent-events', 'counting-principle'],
     },
     {
       id: 'dependence-pairing',

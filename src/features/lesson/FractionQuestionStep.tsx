@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Button } from '../../components/Button'
 import { FeedbackBox } from '../../components/FeedbackBox'
-import { HintButton } from '../../components/HintButton'
 import type { FeedbackMap, Question } from '../../content/types'
 import { fractionsEqual, isReduced, parseFraction } from './fraction'
+import { StepHelp, type StepAiHelp } from './StepHelp'
 
 interface FractionQuestionStepProps {
   prompt?: string
@@ -15,6 +15,14 @@ interface FractionQuestionStepProps {
   disabled?: boolean
   showResult?: boolean
   lastAnswer?: string | null
+  aiHelp?: StepAiHelp | null
+  aiBusy?: boolean
+  onRequestHint?: () => void
+  onRequestFeedback?: () => void
+  onRevisit?: (stepId: string) => void
+  reviewStepTitle?: string
+  /** Called when an Enter-submitted answer is correct → advance to the next step. */
+  onEnterAdvance?: () => void
 }
 
 export function FractionQuestionStep({
@@ -27,6 +35,13 @@ export function FractionQuestionStep({
   disabled,
   showResult,
   lastAnswer,
+  aiHelp,
+  aiBusy,
+  onRequestHint,
+  onRequestFeedback,
+  onRevisit,
+  reviewStepTitle,
+  onEnterAdvance,
 }: FractionQuestionStepProps) {
   const [value, setValue] = useState(lastAnswer ?? '')
   // Set only when the learner submits something that isn't a valid fraction, so
@@ -54,14 +69,16 @@ export function FractionQuestionStep({
       return parsed ? !isReduced(parsed) : false
     })()
 
-  const handleSubmit = () => {
+  const handleSubmit = (): boolean => {
     const parsed = parseFraction(value)
     if (!parsed) {
       setFormatError(true)
-      return
+      return false
     }
     setFormatError(false)
-    onAnswer(value.trim(), checkValue(value))
+    const correct = checkValue(value)
+    onAnswer(value.trim(), correct)
+    return correct
   }
 
   return (
@@ -73,14 +90,18 @@ export function FractionQuestionStep({
           inputMode="text"
           value={value}
           onChange={(e) => {
-            setValue(e.target.value)
+            setValue(e.target.value.replace(/[^0-9/]/g, ''))
             if (formatError) setFormatError(false)
           }}
           disabled={disabled || locked}
           placeholder="Enter a fraction, e.g. 1/8"
           aria-label="Answer as a fraction"
           className="flex-1 rounded-2xl border-2 border-brand-100 bg-white px-4 py-3 font-mono text-base focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100 sm:text-lg"
-          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            if (handleSubmit()) onEnterAdvance?.()
+          }}
         />
         {!locked && (
           <Button onClick={handleSubmit} disabled={!value || disabled}>
@@ -112,7 +133,19 @@ export function FractionQuestionStep({
       {showResult && !isCorrect && (
         <p className="mt-2 text-sm text-slate-500">Edit your fraction above and check again.</p>
       )}
-      {!locked && <HintButton hint={hint} computationHint={computationHint} />}
+      {!locked && (
+        <StepHelp
+          hint={hint}
+          computationHint={computationHint}
+          aiHelp={aiHelp}
+          aiBusy={aiBusy}
+          wrong={!!showResult && !isCorrect}
+          onRequestHint={onRequestHint}
+          onRequestFeedback={onRequestFeedback}
+          onRevisit={onRevisit}
+          reviewStepTitle={reviewStepTitle}
+        />
+      )}
     </div>
   )
 }

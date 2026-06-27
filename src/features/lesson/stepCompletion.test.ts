@@ -17,6 +17,10 @@ const INTERACTIVE_TYPES: StepType[] = [
   'combined-experiment',
   'dependence-pairing',
   'factorial-discovery',
+  'worked-example',
+  'conditional-select',
+  'complement-select',
+  'coin-flip-sim',
 ]
 
 const blankState: StepState = { answered: false, correct: null, answer: null }

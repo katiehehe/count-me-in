@@ -7,13 +7,15 @@ import { Companion } from './Companion'
 interface ChallengeSummaryProps {
   overall: ChallengeUnderstanding
   xpEarned: number
-  conceptsUnderstood: string[]
+  /** Specific misconceptions the AI flagged (already deduped/filtered). May be empty. */
   conceptsToReview: string[]
   recommended: RecommendedNextAction
   hasNextLesson: boolean
   onNextLesson: () => void
   onReviewLesson: () => void
   onBackToCourse: () => void
+  /** Label for the back/exit button (e.g. "Back to review" in the spaced-review round-trip). */
+  backLabel?: string
 }
 
 const MOOD: Record<ChallengeUnderstanding, 'happy' | 'thinking' | 'celebrate'> = {
@@ -52,13 +54,13 @@ function ConceptList({ title, items, tone }: { title: string; items: string[]; t
 export function ChallengeSummary({
   overall,
   xpEarned,
-  conceptsUnderstood,
   conceptsToReview,
   recommended,
   hasNextLesson,
   onNextLesson,
   onReviewLesson,
   onBackToCourse,
+  backLabel,
 }: ChallengeSummaryProps) {
   return (
     <div className="animate-fade-up mx-auto max-w-2xl px-4 py-10">
@@ -79,10 +81,11 @@ export function ChallengeSummary({
           </p>
         </div>
 
-        <div className="mt-6 flex flex-col gap-4 sm:flex-row">
-          <ConceptList title="Concepts understood" items={conceptsUnderstood} tone="good" />
-          <ConceptList title="Concepts to review" items={conceptsToReview} tone="review" />
-        </div>
+        {conceptsToReview.length > 0 && (
+          <div className="mt-6">
+            <ConceptList title="Worth reviewing" items={conceptsToReview} tone="review" />
+          </div>
+        )}
 
         <div className="mt-6 rounded-2xl border border-brand-100 bg-brand-50/70 px-4 py-3 text-center">
           <p className="text-sm font-medium text-slate-700">
@@ -114,7 +117,7 @@ export function ChallengeSummary({
           </>
         )}
         <Button variant="ghost" onClick={onBackToCourse}>
-          Back to course
+          {backLabel ?? 'Back to course'}
         </Button>
       </div>
     </div>

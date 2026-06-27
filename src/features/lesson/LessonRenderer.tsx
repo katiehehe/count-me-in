@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import type { Lesson } from '../../content/types'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import type { Lesson, LessonStep } from '../../content/types'
 import { getNextLesson } from '../../content/course'
 import { loadOrCreateSeed, refreshSeed, resolveLesson, storeSeed } from '../../content/randomize'
 import { SegmentedProgress } from '../../components/SegmentedProgress'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { StepRenderer, canAdvance, interactiveDoneState, type StepState } from './StepRenderer'
+import { requestLessonFeedback, requestLessonHint } from './lessonAi'
 import { LessonReview } from './LessonReview'
 import type { LessonProgressDoc } from '../../firebase/firestoreTypes'
 import { useAuth } from '../auth/AuthProvider'
@@ -19,8 +20,10 @@ import {
   recordLearningActivity,
   restartLesson,
   saveLessonProgress,
+  seedConceptSrs,
   toggleStepStar,
 } from '../progress/progressStore'
+import { practiceableConcepts } from '../practice/practiceEngine'
 import {
   calculateConceptMastery,
   getMasteryTier,
@@ -39,9 +42,34 @@ interface LessonRendererProps {
 
 const defaultStepState: StepState = { answered: false, correct: null, answer: null }
 
+/** The learner's submitted answer as text, for grounding AI feedback. */
+function learnerAnswerText(step: LessonStep, st: StepState): string {
+  if (step.type === 'multiple-choice' && typeof st.selectedIndex === 'number') {
+    return step.question?.choices?.[st.selectedIndex] ?? ''
+  }
+  return st.answer == null ? '' : String(st.answer)
+}
+
+/** The verified correct answer as text, for grounding AI feedback. */
+function correctAnswerText(step: LessonStep): string {
+  const q = step.question
+  if (!q) return ''
+  if (q.inputType === 'multiple-choice' && q.correctChoiceIndex != null) {
+    return q.choices?.[q.correctChoiceIndex] ?? ''
+  }
+  return q.correctAnswer != null ? String(q.correctAnswer) : ''
+}
+
 export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   const { user, profile, refreshProfile } = useAuth()
   const navigate = useNavigate()
+  // When a learner arrives here from the spaced review (?from=weekly-review), the
+  // "Back to course" exits become a direct round-trip back into the review.
+  const [searchParams] = useSearchParams()
+  const fromReview = searchParams.get('from') === 'weekly-review'
+  const restartParam = searchParams.get('restart') === '1'
+  const backLabel = fromReview ? 'Back to review' : 'Back to course'
+  const goBack = () => navigate(fromReview ? '/weekly-review' : '/course')
   // Randomized numbers are fixed per play-through by a seed (persisted so reloads
   // and the review screen stay consistent); restarting reshuffles via a new seed.
   const [seed, setSeed] = useState(() => loadOrCreateSeed(rawLesson.id))
@@ -75,6 +103,8 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   // from `stepStates` so re-answering in review never persists to Firestore nor
   // affects the learner's summarized results (mastery, concept scores, etc.).
   const [reviewStepStates, setReviewStepStates] = useState<Record<string, StepState>>({})
+  // True while an in-lesson AI hint/feedback request is in flight for the current step.
+  const [aiBusy, setAiBusy] = useState(false)
 
   const step = lesson.steps[stepIndex]
   const stepState = stepStates[step.id] ?? defaultStepState
@@ -290,6 +320,83 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
     }
   }
 
+  // In-lesson AI: fetch an adaptive hint, or feedback on the learner's wrong answer,
+  // grounded in this step + the earlier steps it could point back to. The result is
+  // stored on the step's state so it persists when the learner navigates away to
+  // "relearn" and comes back.
+  const requestAiHelp = async (kind: 'hint' | 'feedback') => {
+    if (!isAiEnabled() || !user) return
+
+    // Progressive hint reveal: the first click fetches all three tiers; each later
+    // click just uncovers the next one (no extra AI call), capped at the last tier.
+    if (kind === 'hint') {
+      const existing = stepState.aiHelp
+      if (existing && existing.kind === 'hint') {
+        updateStepState(step.id, {
+          aiHelp: {
+            ...existing,
+            revealedTier: Math.min(existing.tiers.length, existing.revealedTier + 1),
+          },
+        })
+        return
+      }
+    }
+
+    const earlierSteps = lesson.steps
+      .slice(0, stepIndex)
+      .filter((s) => s.type !== 'intro' && s.type !== 'completion')
+      .map((s) => ({ id: s.id, title: s.title }))
+    const base = {
+      lessonTitle: lesson.title,
+      stepTitle: step.title,
+      questionText: step.prompt || step.body || step.title,
+      choices: step.question?.choices,
+      concepts: step.concepts ?? lesson.concepts,
+      earlierSteps,
+    }
+    setAiBusy(true)
+    try {
+      if (kind === 'feedback') {
+        const help = await requestLessonFeedback({
+          ...base,
+          learnerAnswer: learnerAnswerText(step, stepState),
+          correctAnswer: correctAnswerText(step),
+        })
+        updateStepState(step.id, {
+          aiHelp: {
+            kind: 'feedback',
+            text: help.text || 'Let me think about that a different way…',
+            reviewStepId: help.reviewStepId,
+          },
+        })
+      } else {
+        const help = await requestLessonHint({ ...base, correctAnswer: correctAnswerText(step) })
+        updateStepState(step.id, {
+          aiHelp: { kind: 'hint', tiers: help.tiers, revealedTier: 1, reviewStepId: help.reviewStepId },
+        })
+      }
+    } catch {
+      updateStepState(step.id, {
+        aiHelp:
+          kind === 'hint'
+            ? { kind: 'hint', tiers: ['Pip is napping — try again in a moment.'], revealedTier: 1, reviewStepId: null }
+            : { kind: 'feedback', text: 'Pip is napping — try again in a moment.', reviewStepId: null },
+      })
+    } finally {
+      setAiBusy(false)
+    }
+  }
+
+  // Jump back to an earlier step the AI recommended revisiting. The original step's
+  // aiHelp stays in stepStates, so returning to it still shows the hint.
+  const handleRevisit = (stepId: string) => {
+    const idx = lesson.steps.findIndex((s) => s.id === stepId)
+    if (idx >= 0) {
+      setFurthestIndex((prev) => Math.max(prev, idx))
+      setStepIndex(idx)
+    }
+  }
+
   const handleNext = async () => {
     const nextIndex = stepIndex + 1
     if (nextIndex >= lesson.steps.length) return
@@ -306,6 +413,8 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
         gradedCorrect,
         gradedTotal,
       )
+      // Schedule this lesson's concepts for their first spaced review (tomorrow).
+      await seedConceptSrs(user.uid, practiceableConcepts(lesson.concepts)).catch(() => {})
       const fresh = await getLessonProgress(user.uid, lesson.id)
       if (fresh) {
         setProgressDoc(fresh)
@@ -315,6 +424,12 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
       setAlreadyCompleted(true)
       setFurthestIndex(lesson.steps.length - 1)
       setReviewWalkthrough(false)
+      // Arriving from the spaced review: drop the learner straight back to its
+      // weak-spot summary instead of Challenge Mode / the in-lesson summary.
+      if (fromReview) {
+        navigate('/weekly-review')
+        return
+      }
       // The lesson is now saved and the next lesson unlocked. When AI is on, route
       // into Challenge Mode for retrieval practice; the results summary stays
       // reachable from there. With AI off, fall back to the summary as before.
@@ -405,48 +520,55 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
     setReviewing(false)
   }
 
-  // Pressing Enter advances to the next step once it's satisfiable (e.g. after a
-  // question is answered correctly) — an explicit action, so we never auto-skip.
-  // A "latest-callback" ref keeps one stable listener that always sees fresh state.
+  // A `?restart=1` deep link (from the review's weak-spot cards) forces a fresh
+  // attempt from step 0 even on a completed lesson, instead of the review screen.
+  const restartHandledRef = useRef(false)
+  useEffect(() => {
+    if (loading || !restartParam || restartHandledRef.current) return
+    restartHandledRef.current = true
+    void handleRestart()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, restartParam])
+
+  // Pressing Enter advances to the next step ONLY when the current step is satisfied
+  // RIGHT NOW (e.g. a question answered correctly) — never on a wrong or blank answer.
+  // A one-shot lock (released the moment the step actually changes) stops a key-repeat
+  // or stray second Enter from skipping the next, still-unanswered step — without the
+  // time-based blocking that made a quick, legitimate Enter feel dead.
+  const advanceLockRef = useRef(false)
+  useEffect(() => {
+    advanceLockRef.current = false
+  }, [stepIndex])
+
+  // The global Enter key: advance iff the CURRENT step is satisfiable this instant.
   const tryAdvanceRef = useRef<() => boolean>(() => false)
   tryAdvanceRef.current = () => {
-    if (reviewing || loading) return false
-    if (canAdvance(step, activeStepState)) {
-      void handleNext()
-      return true
-    }
-    return false
+    if (reviewing || loading || advanceLockRef.current) return false
+    if (!canAdvance(step, activeStepState)) return false
+    advanceLockRef.current = true
+    void handleNext()
+    return true
   }
 
-  // Snapshot of step/state each render, so the Enter listener can read the values that
-  // were true *before* the current keystroke graded an answer.
-  const enterStateRef = useRef({ step, stepState: activeStepState, reviewing, loading })
-  enterStateRef.current = { step, stepState: activeStepState, reviewing, loading }
-  // Whether the step was already advancible when Enter went down. This stops a single
-  // Enter from both checking a correct answer and skipping straight past its feedback.
-  const advancibleAtKeydownRef = useRef(false)
+  // Called by a typed question only when ITS Enter just produced a correct answer, so a
+  // single Enter moves on. Shares the same one-shot lock so it can't double-advance.
+  const advanceOnCorrectRef = useRef<() => void>(() => {})
+  advanceOnCorrectRef.current = () => {
+    if (reviewing || loading || advanceLockRef.current) return
+    advanceLockRef.current = true
+    void handleNext()
+  }
 
   useEffect(() => {
-    // Capture phase fires before React grades the answer, so it sees pre-keystroke state.
-    const onKeyDownCapture = (e: KeyboardEvent) => {
-      if (e.key !== 'Enter' || e.shiftKey) return
-      const { step, stepState, reviewing, loading } = enterStateRef.current
-      advancibleAtKeydownRef.current = !reviewing && !loading && canAdvance(step, stepState)
-    }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Enter' || e.shiftKey) return
       const target = e.target as HTMLElement | null
       // Don't hijack Enter inside multi-line text fields.
       if (target && target.tagName === 'TEXTAREA') return
-      // Only advance if the step was already satisfied before this keystroke.
-      if (advancibleAtKeydownRef.current && tryAdvanceRef.current()) e.preventDefault()
+      if (tryAdvanceRef.current()) e.preventDefault()
     }
-    window.addEventListener('keydown', onKeyDownCapture, true)
     window.addEventListener('keydown', onKeyDown)
-    return () => {
-      window.removeEventListener('keydown', onKeyDownCapture, true)
-      window.removeEventListener('keydown', onKeyDown)
-    }
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
   if (loading) {
@@ -483,25 +605,35 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
         />
 
         <div className="fixed bottom-0 left-0 right-0 border-t border-brand-100/80 bg-white/95 px-4 py-3 backdrop-blur sm:py-4">
-          <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-2">
-            <Button variant="secondary" onClick={() => navigate('/course')}>
-              Back to course
+          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-2">
+            <Button variant="secondary" size="sm" onClick={goBack}>
+              {backLabel}
             </Button>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="secondary" onClick={handleRestart}>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button variant="secondary" size="sm" onClick={handleRestart}>
                 ↻ Restart
               </Button>
-              <Button variant="secondary" onClick={handleReviewAnswers}>
-                Review questions
+              <Button variant="secondary" size="sm" onClick={handleReviewAnswers}>
+                Review lesson
               </Button>
-              {nextLesson ? (
-                <Button onClick={() => navigate(`/lesson/${nextLesson.id}`)}>
-                  Next lesson →
+              {isAiEnabled() && (
+                <Button variant="secondary" size="sm" onClick={() => navigate(`/challenge/${lesson.id}`)}>
+                  Review with Pip
                 </Button>
-              ) : (
-                <Button onClick={() => navigate('/course')}>Finish course →</Button>
               )}
+              <Button variant="secondary" size="sm" onClick={() => navigate(`/training?lessons=${lesson.id}`)}>
+                Unlimited practice
+              </Button>
             </div>
+            {nextLesson ? (
+              <Button size="sm" onClick={() => navigate(`/lesson/${nextLesson.id}`)}>
+                Next lesson →
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => navigate('/course')}>
+                Finish course →
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -511,6 +643,31 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
   const isCompletion = step.type === 'completion'
   // Dev mode can click straight through any step without satisfying it.
   const canGoNext = canAdvance(step, activeStepState) || isDevUnlock()
+
+  // The "Ask Pip for a hint" trigger lives in the bottom bar (kept out of the
+  // question area so it isn't enticing). It escalates through the 3 hint tiers.
+  const isGradedQuestion =
+    step.type === 'multiple-choice' || step.type === 'numeric-question' || step.type === 'fraction-question'
+  const barHint = stepState.aiHelp?.kind === 'hint' ? stepState.aiHelp : null
+  const barRevealed = barHint ? Math.min(barHint.revealedTier, barHint.tiers.length) : 0
+  const hintBtnLabel =
+    barRevealed === 0 ? 'Ask Pip for a hint' : barRevealed === 1 ? 'Another hint' : 'Show the answer'
+  const showHintBtn =
+    isAiEnabled() &&
+    isGradedQuestion &&
+    !reviewing &&
+    !reviewWalkthrough &&
+    !(barHint !== null && barRevealed >= barHint.tiers.length)
+
+  // The earlier step the AI suggested revisiting for the current step (if any) —
+  // its progress segment glows and a "Revisit" button appears.
+  const aiReviewStepId = displayStepState.aiHelp?.reviewStepId ?? null
+  const aiReviewStep = aiReviewStepId
+    ? lesson.steps.find((s) => s.id === aiReviewStepId)
+    : undefined
+  const aiHighlightStep = aiReviewStep
+    ? lesson.steps.findIndex((s) => s.id === aiReviewStep.id) + 1
+    : undefined
 
   // Direction-aware slide between steps: forward (Continue) slides in from the
   // right, back (Previous / jump back) from the left. Computed during render
@@ -556,6 +713,7 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
         total={lesson.steps.length}
         furthest={isDevUnlock() ? lesson.steps.length : furthestIndex + 1}
         onSelect={handleSelectStep}
+        highlightStep={aiHighlightStep}
         className="mb-6"
       />
 
@@ -578,6 +736,12 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
             step={step}
             stepState={displayStepState}
             onStepUpdate={handleStepUpdate}
+            aiBusy={aiBusy}
+            onRequestHint={reviewWalkthrough ? undefined : () => requestAiHelp('hint')}
+            onRequestFeedback={reviewWalkthrough ? undefined : () => requestAiHelp('feedback')}
+            onRevisit={handleRevisit}
+            reviewStepTitle={aiReviewStep?.title}
+            onEnterAdvance={() => advanceOnCorrectRef.current()}
           />
         </Card>
 
@@ -628,8 +792,8 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
           {isCompletion ? (
             <>
-              <Button variant="secondary" onClick={() => navigate('/course')}>
-                Back to course
+              <Button variant="secondary" onClick={goBack}>
+                {backLabel}
               </Button>
               {nextLesson ? (
                 <Button onClick={() => navigate(`/lesson/${nextLesson.id}`)}>
@@ -649,8 +813,20 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
               >
                 ← Back
               </Button>
+              {showHintBtn && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => requestAiHelp('hint')}
+                  disabled={aiBusy}
+                >
+                  {aiBusy ? 'Pip is thinking…' : hintBtnLabel}
+                </Button>
+              )}
               <Button onClick={handleNext} disabled={!canGoNext}>
-                {step.nextButtonLabel ?? 'Continue'}
+                {step.type === 'worked-example'
+                  ? 'Got it, let me try'
+                  : (step.nextButtonLabel ?? 'Continue')}
               </Button>
             </>
           )}

@@ -25,6 +25,17 @@ export const getUserProfile: typeof fs.getUserProfile = (...a) => pick().getUser
 export const ensureUserProfile: typeof fs.ensureUserProfile = (...a) => pick().ensureUserProfile(...a)
 export const updateDisplayName: typeof fs.updateDisplayName = (...a) => pick().updateDisplayName(...a)
 export const awardCompanionXp: typeof fs.awardCompanionXp = (...a) => pick().awardCompanionXp(...a)
+export const bumpMasteryFromPractice: typeof fs.bumpMasteryFromPractice = (...a) =>
+  pick().bumpMasteryFromPractice(...a)
+export const lowerMasteryFromReview: typeof fs.lowerMasteryFromReview = (...a) =>
+  pick().lowerMasteryFromReview(...a)
+export const markWeeklyReviewDone: typeof fs.markWeeklyReviewDone = (...a) =>
+  pick().markWeeklyReviewDone(...a)
+export const recordConceptReview: typeof fs.recordConceptReview = (...a) =>
+  pick().recordConceptReview(...a)
+export const recordConceptPractice: typeof fs.recordConceptPractice = (...a) =>
+  pick().recordConceptPractice(...a)
+export const seedConceptSrs: typeof fs.seedConceptSrs = (...a) => pick().seedConceptSrs(...a)
 export const getAllLessonProgress: typeof fs.getAllLessonProgress = (...a) =>
   pick().getAllLessonProgress(...a)
 export const getLessonProgress: typeof fs.getLessonProgress = (...a) => pick().getLessonProgress(...a)

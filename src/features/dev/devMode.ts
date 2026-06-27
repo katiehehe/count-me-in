@@ -27,3 +27,27 @@ export function isDevUnlock(): boolean {
     return true
   }
 }
+
+const FORCE_WEEKLY_KEY = 'cmi-force-weekly'
+
+/**
+ * Demo override: forces the weekly Review to be available regardless of the
+ * once-a-week schedule (e.g. to record a walkthrough right after completing one).
+ * Unlike isDevUnlock this works in production too — it only re-surfaces an existing,
+ * safe feature and does NOT bypass sequential lesson gating. Toggle with
+ * `?weeklyReview=1` (on) / `?weeklyReview=0` (off); the choice persists locally.
+ */
+export function isWeeklyReviewForced(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('weeklyReview') === '1') {
+      window.localStorage.setItem(FORCE_WEEKLY_KEY, 'on')
+    } else if (params.get('weeklyReview') === '0') {
+      window.localStorage.removeItem(FORCE_WEEKLY_KEY)
+    }
+    return window.localStorage.getItem(FORCE_WEEKLY_KEY) === 'on'
+  } catch {
+    return false
+  }
+}

@@ -32,7 +32,8 @@ Open [http://localhost:5173](http://localhost:5173).
 | `VITE_FIREBASE_STORAGE_BUCKET` | Storage bucket |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Messaging sender ID |
 | `VITE_FIREBASE_APP_ID` | App ID |
-| `VITE_AI_ENABLED` | `true` to enable the Phase 2 AI Challenge Mode (requires the `challengeAi` Cloud Function deployed); `false` runs the app with no AI |
+| `VITE_AI_ENABLED` | `true` to enable the Phase 2 AI Challenge Mode (requires the Cloudflare Worker deployed); `false` runs the app with no AI |
+| `VITE_AI_PROXY_URL` | URL of the deployed Cloudflare Worker that proxies OpenAI (the OpenAI key lives there as a secret, never in the client) |
 
 ### Firebase setup
 
@@ -40,11 +41,12 @@ Open [http://localhost:5173](http://localhost:5173).
 2. Enable **Google** and **Anonymous** sign-in under Authentication
 3. Create a Firestore database (production mode is fine; add rules below)
 4. Register a web app and copy config into `.env`
-5. **(Phase 2 AI Challenge Mode)** Deploy the OpenAI proxy function:
-   - Upgrade the project to the **Blaze** plan (Cloud Functions require it).
-   - Store your OpenAI key as a server secret: `firebase functions:secrets:set OPENAI_API_KEY`
-   - Install + deploy the function: `npm --prefix functions install && firebase deploy --only functions`
-   - Set `VITE_AI_ENABLED=true` and redeploy hosting. The OpenAI key stays server-side; it is never shipped to the browser.
+5. **(Phase 2 AI Challenge Mode)** Deploy the OpenAI proxy — a Cloudflare Worker (free, no Firebase billing):
+   - `cd worker && npm install`
+   - Log in to Cloudflare (free, no card): `npx wrangler login`
+   - Store your OpenAI key as a Worker secret: `npx wrangler secret put OPENAI_API_KEY`
+   - Deploy: `npx wrangler deploy` — copy the printed `*.workers.dev` URL.
+   - Put that URL in `VITE_AI_PROXY_URL`, set `VITE_AI_ENABLED=true`, and redeploy hosting. The OpenAI key stays in the Worker as a secret; it is never shipped to the browser.
 
 **Firestore rules (development):**
 
@@ -76,10 +78,10 @@ src/
 │   ├── lesson/       # Lesson engine + step renderers
 │   ├── progress/     # Firestore persistence, streaks, mastery
 │   └── simulation/   # Interactive manipulatives + permutation math
-├── firebase/         # Client init + types + OpenAI callable client
+├── firebase/         # Client init + types + OpenAI proxy client
 └── pages/            # Landing page
 
-functions/            # Firebase Cloud Function: OpenAI (gpt-4o) Challenge Mode proxy
+worker/               # Cloudflare Worker: OpenAI (gpt-4o) Challenge Mode proxy
 ```
 
 ### Content model
@@ -121,34 +123,44 @@ A sequential path; each lesson unlocks the next once it's mastered.
 - Mobile-responsive UI with touch support
 - Works fully without any AI features
 
-## Phase 2 — AI Challenge Mode (shipped)
+## Phase 2 — AI (shipped)
 
-After completing any lesson, learners are routed into **Challenge Mode**: a short,
-structured conversation with a cat companion ("Pip") that checks whether the idea
-stuck. It is **not** a chatbot and **not** pass/fail — lesson completion and
-unlocking happen *before* it and never depend on AI.
+Two AI surfaces, both grounded in structured lesson state and both fully optional
+(the app works unchanged with AI off). Pip, the companion, is a hand-drawn SVG cat.
 
-- **Grounded in lesson state** — every AI call receives the completed lesson's
-  concepts, the steps worked through, the learner's actual first-try mistakes, and
-  the mastery score (`buildGroundingContext.ts`), never just raw chat text.
-- **Question mix** — explain-it-back, catch-the-mistake (driven by real mistakes),
-  a transfer problem, and real-life examples, with a small "explain simpler /
-  contest-style / another example" option.
+**In-lesson AI help** (`lessonAi.ts`, `StepHelp.tsx`) — on any graded question:
+
+- **Ask Pip for a hint** — an adaptive nudge grounded in the question + concept,
+  without revealing the answer.
+- **"Why was that wrong?"** — after a wrong answer, feedback tuned to the learner's
+  actual answer vs. the verified correct one.
+- **Relearn pointers** — the AI may point back to a specific earlier step; that
+  progress-bar segment **glows**, a "Revisit" button appears, and the hint persists
+  when the learner returns. With AI off, the hand-written two-tier hint renders.
+
+**Challenge Mode** — after completing a lesson, a fixed 4-step check with Pip
+(answer a review question → correct a mistake → explain your thinking → real-world
+example). **Not** a chatbot, **not** pass/fail; lesson completion and unlocking
+happen *before* it and never depend on AI.
+
+- **Grounded in lesson state** — every call receives the lesson's concepts, steps
+  worked through, the learner's real first-try mistakes, and mastery score
+  (`buildGroundingContext.ts`), never raw chat text.
 - **Deterministic math** — transfer answers are computed and graded in code
-  (`transferQuestions.ts` + `permutationMath.ts`); the AI only explains, never
-  decides correctness.
+  (`transferQuestions.ts` + `permutationMath.ts`); the AI only explains.
 - **Structured output** — OpenAI Structured Outputs constrain responses to typed
-  JSON via strict `json_schema` (defined server-side in `functions/src/index.ts`).
-- **Companion XP** — thoughtful answers earn fish/XP (computed in code, stored on
-  the profile); sessions + responses persist under
-  `users/{uid}/challengeSessions/{sessionId}[/responses]`.
-- **Degrades gracefully** — with `VITE_AI_ENABLED=false`, or if AI calls fail,
-  the app falls back to the normal results summary and never blocks the learner.
+  JSON via strict `json_schema` (defined server-side in `worker/src/index.ts`).
+- **XP** — scales with performance (0 for an incorrect answer), computed in code,
+  and accumulates into a persistent total shown in the header. Sessions + responses
+  persist under `users/{uid}/challengeSessions/{sessionId}[/responses]`.
+- **Degrades gracefully** — with `VITE_AI_ENABLED=false`, or if a call fails, the
+  app falls back to the normal flow and never blocks the learner.
 
-Built on **OpenAI** (`gpt-4o`) called through a **Firebase Cloud Function**
-(`functions/`), so the API key stays server-side and the browser only calls an
-auth-gated callable. See [`BRAINLIFT.md`](BRAINLIFT.md) for the design rationale
-(why Challenge Mode over a chatbot, grounding, and math verification).
+Built on **OpenAI** (`gpt-4o`) called through a **Cloudflare Worker** (`worker/`),
+so the API key stays server-side; the browser calls the Worker with its Firebase
+ID token, which the Worker verifies before spending any budget. See
+[`BRAINLIFT.md`](BRAINLIFT.md) for the design rationale (why Challenge Mode over a
+chatbot, grounding, and math verification).
 
 Set `VITE_AI_ENABLED=false` to run the app with AI turned off.
 
@@ -193,8 +205,9 @@ See `MVP_AUDIT.md` for the full QA audit and stabilization log.
 - A lesson started on one device *before* seed-persistence shipped may show
   different numbers on a second device until it's restarted (legacy docs only)
 - The Firebase SDK is split into long-cached vendor chunks
-- AI Challenge Mode requires the `challengeAi` Cloud Function deployed (Blaze plan
-  + `OPENAI_API_KEY` secret); until then it degrades to the normal results summary
+- AI Challenge Mode requires the Cloudflare Worker deployed (free; `OPENAI_API_KEY`
+  as a Worker secret) and `VITE_AI_PROXY_URL` set; until then it degrades to the
+  normal results summary
 
 ## License
 
