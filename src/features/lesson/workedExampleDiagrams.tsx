@@ -223,12 +223,18 @@ function Connections({
         ))}
       </svg>
       <div className={`${RESULT_BOX} ${isActive('product') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
-        <Tex display className="text-brand-800">
-          {`${data.left.length} \\times ${data.right.length}${isReached('product') ? ` = ${total}` : ''}`}
-        </Tex>
-        {isReached('product') && data.pairingLabel ? (
-          <span className="ml-1 text-sm text-brand-700">{data.pairingLabel}s</span>
-        ) : null}
+        {isReached('product') ? (
+          <>
+            <Tex display className="text-brand-800">
+              {`${data.left.length} \\times ${data.right.length} = ${total}`}
+            </Tex>
+            {data.pairingLabel ? (
+              <span className="ml-1 text-sm text-brand-700">{data.pairingLabel}s</span>
+            ) : null}
+          </>
+        ) : (
+          <p className="font-mono text-sm text-slate-300">…</p>
+        )}
       </div>
     </div>
   )
@@ -285,9 +291,13 @@ function Group({
         })}
       </div>
       <div className={`${RESULT_BOX} ${isActive('product') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
-        <Tex display className="text-brand-800">
-          {`${fractionLatex(`${total}!`, denomLatex)}${isReached('product') ? ` = ${result}` : ''}`}
-        </Tex>
+        {isReached('product') ? (
+          <Tex display className="text-brand-800">
+            {`${fractionLatex(`${total}!`, denomLatex)} = ${result}`}
+          </Tex>
+        ) : (
+          <p className="font-mono text-sm text-slate-300">…</p>
+        )}
       </div>
     </div>
   )
@@ -364,11 +374,13 @@ function Tree({
         />
       </div>
       <div className={`${RESULT_BOX} ${isActive('product') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
-        <Tex display className="text-brand-800">
-          {`${fractionLatex(String(data.ordered.length), String(data.divideBy))}${
-            isReached('product') ? ` = ${data.grouped.length}` : ''
-          }`}
-        </Tex>
+        {isReached('product') ? (
+          <Tex display className="text-brand-800">
+            {`${fractionLatex(String(data.ordered.length), String(data.divideBy))} = ${data.grouped.length}`}
+          </Tex>
+        ) : (
+          <p className="font-mono text-sm text-slate-300">…</p>
+        )}
       </div>
     </div>
   )
@@ -395,7 +407,12 @@ function Distribution({
                 className={`w-full rounded-t-md ${lit ? 'bg-brand-500' : 'bg-brand-300'}`}
                 style={{ height: `${h}px`, transition: `height ${dur} cubic-bezier(0.22,1,0.36,1) ${i * 60}ms, background-color 0.2s` }}
               />
-              <span className="text-[10px] font-medium text-slate-500">{b.label}</span>
+              <span
+                className="text-[10px] font-medium text-slate-500"
+                style={{ opacity: barsShown ? 1 : 0, transition: `opacity ${dur} ease` }}
+              >
+                {b.label}
+              </span>
             </div>
           )
         })}
@@ -823,9 +840,11 @@ function CoinsSumIndicator({
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-xs font-medium text-slate-500">
-        Each coin is an indicator Xᵢ = 1 if heads, else 0
-      </p>
+      {shown && (
+        <p className="text-center text-xs font-medium text-slate-500">
+          Each coin is an indicator Xᵢ = 1 if heads, else 0
+        </p>
+      )}
       <div className="flex flex-wrap items-end justify-center gap-2 rounded-2xl border-2 border-slate-200 bg-white px-3 py-4">
         {values.map((v, i) => (
           <div

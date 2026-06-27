@@ -21,8 +21,6 @@ interface FractionQuestionStepProps {
   onRequestFeedback?: () => void
   onRevisit?: (stepId: string) => void
   reviewStepTitle?: string
-  /** Called when an Enter-submitted answer is correct → advance to the next step. */
-  onEnterAdvance?: () => void
 }
 
 export function FractionQuestionStep({
@@ -41,7 +39,6 @@ export function FractionQuestionStep({
   onRequestFeedback,
   onRevisit,
   reviewStepTitle,
-  onEnterAdvance,
 }: FractionQuestionStepProps) {
   const [value, setValue] = useState(lastAnswer ?? '')
   // Set only when the learner submits something that isn't a valid fraction, so
@@ -100,7 +97,8 @@ export function FractionQuestionStep({
           onKeyDown={(e) => {
             if (e.key !== 'Enter') return
             e.preventDefault()
-            if (handleSubmit()) onEnterAdvance?.()
+            // Enter only submits and shows the explanation; a second Enter advances.
+            handleSubmit()
           }}
         />
         {!locked && (

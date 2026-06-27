@@ -64,8 +64,6 @@ interface StepRendererProps {
   onRequestFeedback?: () => void
   onRevisit?: (stepId: string) => void
   reviewStepTitle?: string
-  /** Advance to the next step (used for one-press Enter on a correct typed answer). */
-  onEnterAdvance?: () => void
 }
 
 export function StepRenderer({
@@ -77,7 +75,6 @@ export function StepRenderer({
   onRequestFeedback,
   onRevisit,
   reviewStepTitle,
-  onEnterAdvance,
 }: StepRendererProps) {
   switch (step.type) {
     case 'intro':
@@ -489,7 +486,6 @@ export function StepRenderer({
             onRequestFeedback={onRequestFeedback}
             onRevisit={onRevisit}
             reviewStepTitle={reviewStepTitle}
-            onEnterAdvance={onEnterAdvance}
           />
         </div>
       ) : null
@@ -513,7 +509,6 @@ export function StepRenderer({
             onRequestFeedback={onRequestFeedback}
             onRevisit={onRevisit}
             reviewStepTitle={reviewStepTitle}
-            onEnterAdvance={onEnterAdvance}
           />
         </div>
       ) : null

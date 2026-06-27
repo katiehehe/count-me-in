@@ -20,8 +20,6 @@ interface NumericQuestionStepProps {
   onRequestFeedback?: () => void
   onRevisit?: (stepId: string) => void
   reviewStepTitle?: string
-  /** Called when an Enter-submitted answer is correct → advance to the next step. */
-  onEnterAdvance?: () => void
 }
 
 export function NumericQuestionStep({
@@ -40,7 +38,6 @@ export function NumericQuestionStep({
   onRequestFeedback,
   onRevisit,
   reviewStepTitle,
-  onEnterAdvance,
 }: NumericQuestionStepProps) {
   const [value, setValue] = useState(
     lastAnswer !== null && lastAnswer !== undefined ? String(lastAnswer) : '',
@@ -83,8 +80,8 @@ export function NumericQuestionStep({
           onKeyDown={(e) => {
             if (e.key !== 'Enter') return
             e.preventDefault()
-            // One press: a correct typed answer advances; a wrong one stays on its feedback.
-            if (handleSubmit()) onEnterAdvance?.()
+            // Enter only submits and shows the explanation; a second Enter advances.
+            handleSubmit()
           }}
         />
         {!locked && (

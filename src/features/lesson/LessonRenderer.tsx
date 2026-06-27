@@ -550,15 +550,6 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
     return true
   }
 
-  // Called by a typed question only when ITS Enter just produced a correct answer, so a
-  // single Enter moves on. Shares the same one-shot lock so it can't double-advance.
-  const advanceOnCorrectRef = useRef<() => void>(() => {})
-  advanceOnCorrectRef.current = () => {
-    if (reviewing || loading || advanceLockRef.current) return
-    advanceLockRef.current = true
-    void handleNext()
-  }
-
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Enter' || e.shiftKey) return
@@ -741,7 +732,6 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
             onRequestFeedback={reviewWalkthrough ? undefined : () => requestAiHelp('feedback')}
             onRevisit={handleRevisit}
             reviewStepTitle={aiReviewStep?.title}
-            onEnterAdvance={() => advanceOnCorrectRef.current()}
           />
         </Card>
 
