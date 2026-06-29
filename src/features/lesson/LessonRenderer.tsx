@@ -7,6 +7,7 @@ import { SegmentedProgress } from '../../components/SegmentedProgress'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { StepRenderer, canAdvance, interactiveDoneState, type StepState } from './StepRenderer'
+import { shouldAdvanceOnEnter } from './enterAdvance'
 import { requestLessonFeedback, requestLessonHint } from './lessonAi'
 import { LessonReview } from './LessonReview'
 import type { LessonProgressDoc } from '../../firebase/firestoreTypes'
@@ -530,27 +531,43 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, restartParam])
 
-  // Pressing Enter advances to the next step ONLY when the current step is satisfied
-  // RIGHT NOW (e.g. a question answered correctly) — never on a wrong or blank answer.
-  // A one-shot lock (released the moment the step actually changes) stops a key-repeat
-  // or stray second Enter from skipping the next, still-unanswered step — without the
-  // time-based blocking that made a quick, legitimate Enter feel dead.
+  // Enter is two-press by design: the keystroke that SUBMITS a correct answer only
+  // shows the explanation; the NEXT Enter advances. React 18 flushes the graded answer
+  // synchronously mid-keystroke, so "is it correct now?" alone would advance on the
+  // submitting press. We therefore also capture — in the event CAPTURE phase, before
+  // React grades it — whether the step was ALREADY satisfiable before this keystroke,
+  // and only advance then (see shouldAdvanceOnEnter). A one-shot lock, released when the
+  // step actually changes, additionally blocks key-repeat from skipping the next step.
   const advanceLockRef = useRef(false)
   useEffect(() => {
     advanceLockRef.current = false
   }, [stepIndex])
 
-  // The global Enter key: advance iff the CURRENT step is satisfiable this instant.
+  const enterStateRef = useRef({ step, activeStepState, reviewing, loading })
+  enterStateRef.current = { step, activeStepState, reviewing, loading }
+  const advancibleBeforeKeyRef = useRef(false)
+
   const tryAdvanceRef = useRef<() => boolean>(() => false)
   tryAdvanceRef.current = () => {
-    if (reviewing || loading || advanceLockRef.current) return false
-    if (!canAdvance(step, activeStepState)) return false
+    const advance = shouldAdvanceOnEnter({
+      advancibleBeforeKey: advancibleBeforeKeyRef.current,
+      canAdvanceNow: !reviewing && !loading && canAdvance(step, activeStepState),
+      locked: advanceLockRef.current,
+    })
+    if (!advance) return false
     advanceLockRef.current = true
     void handleNext()
     return true
   }
 
   useEffect(() => {
+    // Capture phase fires before React's bubble-phase handlers grade the answer, so it
+    // reads the step state as it was BEFORE this keystroke.
+    const onKeyDownCapture = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.shiftKey) return
+      const s = enterStateRef.current
+      advancibleBeforeKeyRef.current = !s.reviewing && !s.loading && canAdvance(s.step, s.activeStepState)
+    }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Enter' || e.shiftKey) return
       const target = e.target as HTMLElement | null
@@ -558,8 +575,12 @@ export function LessonRenderer({ lesson: rawLesson }: LessonRendererProps) {
       if (target && target.tagName === 'TEXTAREA') return
       if (tryAdvanceRef.current()) e.preventDefault()
     }
+    window.addEventListener('keydown', onKeyDownCapture, true)
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDownCapture, true)
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [])
 
   if (loading) {

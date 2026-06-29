@@ -15,9 +15,19 @@ export const dependentEventsLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'When One Event Changes Another',
-      body: 'Some events are linked: when the first happens, it changes the odds of the next. Dark clouds make wet ground more likely; an hour of studying lifts your exam odds; pulling a card and NOT putting it back changes what you can draw next. These are DEPENDENT events. Independent events multiplied P(A) by P(B); dependent events use the CONDITIONAL second probability — the chance of B once A has already happened.',
-      prompt: 'P(A and B) = P(A) · P(B | A) — the second factor shifts because the first event already happened.',
+      body: 'Some events are linked: when the first happens, it changes the odds of the next.\n\nDark clouds make wet ground more likely; an hour of studying lifts your exam odds; pulling a card and NOT putting it back changes what you can draw next. These are DEPENDENT events.\n\nIndependent events multiplied $P(A)$ by $P(B)$; dependent events use the CONDITIONAL second probability — the chance of B once A has already happened.',
+      prompt: '$P(A \\text{ and } B) = P(A) \\cdot P(B \\mid A)$ — the second factor shifts because the first event already happened.',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'A jar holds 4 red and 2 blue marbles. Draw two without replacement — guess the probability both are red. A fraction is fine.',
+        answer: '2/5',
+      },
     },
     {
       id: 'worked-draw',

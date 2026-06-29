@@ -15,9 +15,19 @@ export const conditionalProbabilityLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'Given B, B Is the Whole World',
-      body: 'New information shrinks uncertainty. Once you’re TOLD an event B happened, every outcome outside B is impossible — so B becomes your entire sample space. Conditional probability P(A | B) asks: inside that smaller world B, what fraction of outcomes are also A? Everything you know about counting still works; you just count inside B.',
-      prompt: 'P(A | B) = |A ∩ B| / |B| — restrict to B, then count the A’s among what’s left.',
+      body: 'New information shrinks uncertainty. Once you’re TOLD an event B happened, every outcome outside B is impossible — so B becomes your entire sample space.\n\nConditional probability $P(A \\mid B)$ asks: inside that smaller world B, what fraction of outcomes are also A?\n\nEverything you know about counting still works; you just count inside B.',
+      prompt: '$P(A \\mid B) = \\dfrac{|A \\cap B|}{|B|}$ — restrict to B, then count the A’s among what’s left.',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'A die comes up even. Given just that, guess the probability it’s greater than 3 — a fraction is welcome.',
+        answer: '2/3',
+      },
     },
     {
       id: 'worked-sample-space',

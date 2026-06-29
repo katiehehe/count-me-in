@@ -26,9 +26,19 @@ export const countingPrincipleLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'Getting Dressed',
-      body: 'You have 3 shirts and 2 pairs of socks. An "outfit" is one shirt paired with one pair of socks. You want to know how many different outfits you can put together.',
+      body: 'You have 3 shirts and 2 pairs of socks. An "outfit" is one shirt paired with one pair of socks.\n\nYou want to know how many different outfits you can put together.',
       prompt: 'Before counting: do you think there are more or fewer than 10 outfits?',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'Before we count them out: how many different outfits can you make from 3 shirts and 2 pairs of socks?',
+        answer: 6,
+      },
     },
     {
       id: 'worked-outfits',

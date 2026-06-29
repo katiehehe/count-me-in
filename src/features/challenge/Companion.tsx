@@ -1,4 +1,5 @@
-import { PipCat, type PipMood } from './PipCat'
+import { type PipMood } from './PipCat'
+import { PipAvatar } from './PipAvatar'
 
 interface CompanionProps {
   /** Optional speech-bubble message from the companion. */
@@ -11,16 +12,15 @@ interface CompanionProps {
 }
 
 /**
- * Pip, the one default cat study companion for Challenge Mode. A custom SVG cat
- * (see {@link PipCat}) with a speech bubble and fish XP — deliberately simple: no
- * shop, inventory, or customization, per the Phase 2 scope of "a cute companion
- * that never overshadows the learning".
+ * Pip, the cat study companion. A speech bubble + fish XP next to {@link PipAvatar},
+ * which automatically shows the learner's equipped look — an AI-generated image
+ * for the `ai-custom` cosmetic, otherwise the SVG cat with theme/hat.
  */
 export function Companion({ message, xp, mood = 'happy', className = '' }: CompanionProps) {
   return (
     <div className={`flex items-start gap-3 ${className}`}>
       <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blush-100 shadow-soft">
-        <PipCat mood={mood} className="h-11 w-11" />
+        <PipAvatar mood={mood} className="h-11 w-11" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">

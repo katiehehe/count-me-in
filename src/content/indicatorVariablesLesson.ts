@@ -15,9 +15,18 @@ export const indicatorVariablesLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'Turn Counting into Adding',
-      body: 'Here’s a trick that cracks hard counting problems. For each thing you might count, define an INDICATOR: Xᵢ = 1 if event i happens, and 0 if it doesn’t. Then the total count is just X₁ + X₂ + … — adding the 0/1 marks. Because E[Xᵢ] = P(event i), linearity gives E[count] = Σ P(event i): the expected count is the sum of the individual probabilities. No distribution, no casework — and it works even when the events are dependent.',
-      prompt: 'count = ΣXᵢ, so E[count] = Σ E[Xᵢ] = Σ P(eventᵢ).',
+      body: 'Here’s a trick that cracks hard counting problems. For each thing you might count, define an INDICATOR: $X_i = 1$ if event $i$ happens, and $0$ if it doesn’t.\n\nThen the total count is just $X_1 + X_2 + \\cdots$ — adding the 0/1 marks.\n\nBecause $E[X_i] = P(\\text{event } i)$, linearity gives $E[\\text{count}] = \\sum P(\\text{event } i)$: the expected count is the sum of the individual probabilities.\n\nNo distribution, no casework — and it works even when the events are dependent.',
+      prompt: '$\\text{count} = \\sum X_i$, so $E[\\text{count}] = \\sum E[X_i] = \\sum P(\\text{event}_i)$.',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt: 'Flip 10 coins and count the heads. What’s the expected number? Guess first.',
+        answer: 5,
+      },
     },
     {
       id: 'worked-coins-indicator',

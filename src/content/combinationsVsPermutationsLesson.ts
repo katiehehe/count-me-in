@@ -20,9 +20,19 @@ export const combinationsVsPermutationsLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'Order Matters — Or Does It?',
-      body: 'Two situations sound similar but count differently. Awarding Gold, Silver, and Bronze to 3 of 5 runners depends on the ORDER (who gets which medal). Picking a 3-person committee from 5 does NOT — a committee is just a group, no order.',
+      body: 'Two situations sound similar but count differently.\n\nAwarding Gold, Silver, and Bronze to 3 of 5 runners depends on the ORDER (who gets which medal).\n\nPicking a 3-person committee from 5 does NOT — a committee is just a group, no order.',
       prompt: 'Permutations count ordered selections; combinations count unordered ones. Let’s see the difference.',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'Predict first: how many different 2-person teams can you pick from Ana, Ben, and Cara?',
+        answer: 3,
+      },
     },
     {
       id: 'worked-choose',

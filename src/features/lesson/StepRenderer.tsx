@@ -1,5 +1,6 @@
 import type { LessonStep, StepType } from '../../content/types'
 import { FeedbackBox } from '../../components/FeedbackBox'
+import { RichText } from '../../components/RichText'
 import { HintButton } from '../../components/HintButton'
 import { ArrangementBoard } from '../simulation/ArrangementBoard'
 import { ConnectionBoard } from '../simulation/ConnectionBoard'
@@ -15,9 +16,15 @@ import { DependencePairing } from '../simulation/DependencePairing'
 import { ConditionalSelect } from '../simulation/ConditionalSelect'
 import { ComplementSelect } from '../simulation/ComplementSelect'
 import { CoinFlipSim } from '../simulation/CoinFlipSim'
+import { SequenceBuilder } from '../simulation/SequenceBuilder'
+import { VennCounter } from '../simulation/VennCounter'
+import { StarsBarsBoard } from '../simulation/StarsBarsBoard'
+import { LatticePathBoard } from '../simulation/LatticePathBoard'
+import { HyperBuilder } from '../simulation/HyperBuilder'
 import { ExpectedValueRoller } from '../simulation/ExpectedValueRoller'
 import { ProductGrid } from '../simulation/ProductGrid'
 import { MultisetCondense } from '../simulation/MultisetCondense'
+import { PrequestionStep } from './PrequestionStep'
 import { MultipleChoiceStep } from './MultipleChoiceStep'
 import { NumericQuestionStep } from './NumericQuestionStep'
 import { FractionQuestionStep } from './FractionQuestionStep'
@@ -50,6 +57,12 @@ export interface StepState {
   conditionalSelectDone?: boolean
   complementSelectDone?: boolean
   coinSimDone?: boolean
+  sequenceBuildDone?: boolean
+  vennRegionsDone?: boolean
+  starsBarsDragDone?: boolean
+  latticePathDone?: boolean
+  hyperBuildDone?: boolean
+  prequestionDone?: boolean
   /** In-lesson AI help (hint or wrong-answer feedback) for graded questions. */
   aiHelp?: StepAiHelp | null
 }
@@ -80,19 +93,34 @@ export function StepRenderer({
     case 'intro':
       return (
         <div>
-          <p className="text-base leading-relaxed text-slate-700 sm:text-lg">{step.body}</p>
+          <RichText className="text-base text-slate-700 sm:text-lg">{step.body ?? ''}</RichText>
           {step.prompt && (
-            <p className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-base font-semibold text-brand-800 sm:text-lg">
-              {step.prompt}
-            </p>
+            <div className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-base font-semibold text-brand-800 sm:text-lg">
+              <RichText>{step.prompt}</RichText>
+            </div>
           )}
         </div>
       )
 
+    case 'prequestion':
+      return step.prequestionConfig ? (
+        <div>
+          {step.body && <RichText className="mb-4 text-slate-700">{step.body}</RichText>}
+          <PrequestionStep
+            prompt={step.prequestionConfig.prompt}
+            answer={step.prequestionConfig.answer}
+            revealNote={step.prequestionConfig.revealNote}
+            submitted={stepState.prequestionDone === true}
+            guess={typeof stepState.answer === 'string' ? stepState.answer : null}
+            onSubmit={(g) => onStepUpdate({ prequestionDone: true, answer: g })}
+          />
+        </div>
+      ) : null
+
     case 'arrangement':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.arrangementConfig && (
             <ArrangementBoard
               items={step.arrangementConfig.items}
@@ -114,7 +142,7 @@ export function StepRenderer({
     case 'connection':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.connectionConfig && (
             <ConnectionBoard
               leftLabel={step.connectionConfig.leftLabel}
@@ -137,7 +165,7 @@ export function StepRenderer({
     case 'tree':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.treeConfig && (
             <CombinationTree
               stages={step.treeConfig.stages}
@@ -157,7 +185,7 @@ export function StepRenderer({
     case 'simulation':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.simulationConfig && (
             <DiceSimulation
               faces={step.simulationConfig.faces}
@@ -178,7 +206,7 @@ export function StepRenderer({
     case 'probability':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.probabilityConfig && (
             <ProbabilityGamble
               eventALabel={step.probabilityConfig.eventALabel}
@@ -200,7 +228,7 @@ export function StepRenderer({
     case 'outcome-select':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.outcomeSelectConfig && (
             <OutcomeSelect
               leftLabel={step.outcomeSelectConfig.leftLabel}
@@ -225,7 +253,7 @@ export function StepRenderer({
     case 'condensing':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.condensingConfig && (
             <CombinationCondense
               items={step.condensingConfig.items}
@@ -245,7 +273,7 @@ export function StepRenderer({
     case 'combined-experiment':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.combinedExperimentConfig && (
             <CombinedExperiment
               trials={step.combinedExperimentConfig.trials}
@@ -268,7 +296,7 @@ export function StepRenderer({
     case 'dependence-pairing':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.dependencePairingConfig && (
             <DependencePairing
               cards={step.dependencePairingConfig.cards}
@@ -288,7 +316,7 @@ export function StepRenderer({
     case 'expected-value-sim':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           <ExpectedValueRoller
             sides={step.expectedValueSimConfig?.sides}
             onComplete={() => onStepUpdate({ evSimDone: true })}
@@ -305,7 +333,7 @@ export function StepRenderer({
     case 'multiset-condense':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           <MultisetCondense
             groups={step.multisetCondenseConfig?.groups}
             onComplete={() => onStepUpdate({ multisetCondenseDone: true })}
@@ -322,7 +350,7 @@ export function StepRenderer({
     case 'product-grid':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.productGridConfig && (
             <ProductGrid
               rowLabel={step.productGridConfig.rowLabel}
@@ -347,7 +375,7 @@ export function StepRenderer({
     case 'factorial-discovery':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.factorialConfig && (
             <FactorialDiscovery
               itemLabel={step.factorialConfig.itemLabel}
@@ -365,7 +393,7 @@ export function StepRenderer({
     case 'worked-example':
       return (
         <div>
-          {step.body && <p className="mb-4 text-slate-700">{step.body}</p>}
+          {step.body && <RichText className="mb-4 text-slate-700">{step.body}</RichText>}
           {step.workedExampleConfig && (
             <WorkedExampleStep
               config={step.workedExampleConfig}
@@ -378,7 +406,7 @@ export function StepRenderer({
     case 'conditional-select':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.conditionalSelectConfig && (
             <ConditionalSelect
               outcomes={step.conditionalSelectConfig.outcomes}
@@ -401,7 +429,7 @@ export function StepRenderer({
     case 'complement-select':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           {step.complementSelectConfig && (
             <ComplementSelect
               outcomes={step.complementSelectConfig.outcomes}
@@ -424,7 +452,7 @@ export function StepRenderer({
     case 'coin-flip-sim':
       return (
         <div>
-          <p className="mb-4 text-slate-700">{step.body}</p>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
           <CoinFlipSim
             coins={step.coinFlipSimConfig?.coins}
             showIndicators={step.coinFlipSimConfig?.showIndicators}
@@ -439,10 +467,123 @@ export function StepRenderer({
         </div>
       )
 
+    case 'sequence-build':
+      return (
+        <div>
+          <RichText className="mb-4 text-slate-700">{step.body ?? ''}</RichText>
+          {step.sequenceBuildConfig && (
+            <SequenceBuilder
+              slots={step.sequenceBuildConfig.slots}
+              heads={step.sequenceBuildConfig.heads}
+              onLabel={step.sequenceBuildConfig.onLabel}
+              offLabel={step.sequenceBuildConfig.offLabel}
+              unit={step.sequenceBuildConfig.unit}
+              onComplete={() => onStepUpdate({ sequenceBuildDone: true })}
+            />
+          )}
+          {!stepState.sequenceBuildDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.sequenceBuildDone && step.feedback?.correct && (
+            <FeedbackBox variant="correct" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
+    case 'venn-regions':
+      return (
+        <div>
+          {step.body && <RichText className="mb-4 text-slate-700">{step.body}</RichText>}
+          {step.vennRegionsConfig && (
+            <VennCounter
+              a={step.vennRegionsConfig.a}
+              b={step.vennRegionsConfig.b}
+              both={step.vennRegionsConfig.both}
+              aLabel={step.vennRegionsConfig.aLabel}
+              bLabel={step.vennRegionsConfig.bLabel}
+              onComplete={() => onStepUpdate({ vennRegionsDone: true })}
+            />
+          )}
+          {!stepState.vennRegionsDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.vennRegionsDone && step.feedback?.correct && (
+            <FeedbackBox variant="correct" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
+    case 'stars-bars-drag':
+      return (
+        <div>
+          {step.body && <RichText className="mb-4 text-slate-700">{step.body}</RichText>}
+          {step.starsBarsDragConfig && (
+            <StarsBarsBoard
+              n={step.starsBarsDragConfig.n}
+              k={step.starsBarsDragConfig.k}
+              target={step.starsBarsDragConfig.target}
+              itemLabel={step.starsBarsDragConfig.itemLabel}
+              binLabel={step.starsBarsDragConfig.binLabel}
+              onComplete={() => onStepUpdate({ starsBarsDragDone: true })}
+            />
+          )}
+          {!stepState.starsBarsDragDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.starsBarsDragDone && step.feedback?.correct && (
+            <FeedbackBox variant="correct" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
+    case 'lattice-path':
+      return (
+        <div>
+          {step.body && <RichText className="mb-4 text-slate-700">{step.body}</RichText>}
+          {step.latticePathConfig && (
+            <LatticePathBoard
+              m={step.latticePathConfig.m}
+              n={step.latticePathConfig.n}
+              onComplete={() => onStepUpdate({ latticePathDone: true })}
+            />
+          )}
+          {!stepState.latticePathDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.latticePathDone && step.feedback?.correct && (
+            <FeedbackBox variant="correct" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
+    case 'hyper-build':
+      return (
+        <div>
+          {step.body && <RichText className="mb-4 text-slate-700">{step.body}</RichText>}
+          {step.hyperBuildConfig && (
+            <HyperBuilder
+              total={step.hyperBuildConfig.total}
+              special={step.hyperBuildConfig.special}
+              draw={step.hyperBuildConfig.draw}
+              target={step.hyperBuildConfig.target}
+              specialLabel={step.hyperBuildConfig.specialLabel}
+              otherLabel={step.hyperBuildConfig.otherLabel}
+              onComplete={() => onStepUpdate({ hyperBuildDone: true })}
+            />
+          )}
+          {!stepState.hyperBuildDone && (
+            <HintButton hint={step.feedback?.hint} computationHint={step.feedback?.computationHint} />
+          )}
+          {stepState.hyperBuildDone && step.feedback?.correct && (
+            <FeedbackBox variant="correct" message={step.feedback.correct} />
+          )}
+        </div>
+      )
+
     case 'multiple-choice':
       return step.question ? (
         <div>
-          {step.body && <p className="mb-4 text-slate-700">{step.body}</p>}
+          {step.body && <RichText className="mb-4 text-slate-700">{step.body}</RichText>}
           {step.orderingsDisplay && <OrderingsList items={step.orderingsDisplay} />}
           <MultipleChoiceStep
             prompt={step.prompt}
@@ -470,7 +611,7 @@ export function StepRenderer({
     case 'numeric-question':
       return step.question ? (
         <div>
-          {step.body && <p className="mb-4 text-slate-700">{step.body}</p>}
+          {step.body && <RichText className="mb-4 text-slate-700">{step.body}</RichText>}
           <NumericQuestionStep
             prompt={step.prompt}
             question={step.question}
@@ -493,7 +634,7 @@ export function StepRenderer({
     case 'fraction-question':
       return step.question ? (
         <div>
-          {step.body && <p className="mb-4 text-slate-700">{step.body}</p>}
+          {step.body && <RichText className="mb-4 text-slate-700">{step.body}</RichText>}
           <FractionQuestionStep
             prompt={step.prompt}
             question={step.question}
@@ -517,7 +658,7 @@ export function StepRenderer({
       return (
         <div className="text-center">
           <div className="mb-4 text-4xl sm:text-5xl">🎉</div>
-          <p className="text-base text-slate-700 sm:text-lg">{step.body}</p>
+          <RichText className="text-base text-slate-700 sm:text-lg">{step.body ?? ''}</RichText>
         </div>
       )
 
@@ -568,6 +709,18 @@ export function interactiveDoneState(type: StepType): Partial<StepState> {
       return { complementSelectDone: true }
     case 'coin-flip-sim':
       return { coinSimDone: true }
+    case 'sequence-build':
+      return { sequenceBuildDone: true }
+    case 'venn-regions':
+      return { vennRegionsDone: true }
+    case 'stars-bars-drag':
+      return { starsBarsDragDone: true }
+    case 'lattice-path':
+      return { latticePathDone: true }
+    case 'hyper-build':
+      return { hyperBuildDone: true }
+    case 'prequestion':
+      return { prequestionDone: true }
     default:
       return {}
   }
@@ -614,6 +767,18 @@ export function canAdvance(step: LessonStep, stepState: StepState): boolean {
       return stepState.complementSelectDone === true
     case 'coin-flip-sim':
       return stepState.coinSimDone === true
+    case 'sequence-build':
+      return stepState.sequenceBuildDone === true
+    case 'venn-regions':
+      return stepState.vennRegionsDone === true
+    case 'stars-bars-drag':
+      return stepState.starsBarsDragDone === true
+    case 'lattice-path':
+      return stepState.latticePathDone === true
+    case 'hyper-build':
+      return stepState.hyperBuildDone === true
+    case 'prequestion':
+      return stepState.prequestionDone === true
     case 'multiple-choice':
     case 'numeric-question':
     case 'fraction-question':

@@ -1,3 +1,5 @@
+import { RichText } from './RichText'
+
 interface FeedbackBoxProps {
   variant: 'correct' | 'incorrect' | 'neutral'
   message: string
@@ -19,7 +21,7 @@ export function FeedbackBox({ variant, message, title }: FeedbackBoxProps) {
       {variant === 'incorrect' && <span className="font-bold">✗</span>}
       <div>
         {title && <span className="font-bold">{title} </span>}
-        {message}
+        <RichText inline>{message}</RichText>
       </div>
     </div>
   )

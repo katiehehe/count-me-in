@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '../../components/Button'
 import { FeedbackBox } from '../../components/FeedbackBox'
+import { RichText } from '../../components/RichText'
 import type { FeedbackMap, Question } from '../../content/types'
 import { fractionsEqual, isReduced, parseFraction } from './fraction'
 import { StepHelp, type StepAiHelp } from './StepHelp'
@@ -80,7 +81,9 @@ export function FractionQuestionStep({
 
   return (
     <div>
-      {prompt && <p className="mb-4 text-base font-medium text-slate-800 sm:text-lg">{prompt}</p>}
+      {prompt && (
+        <RichText className="mb-4 text-base font-medium text-slate-800 sm:text-lg">{prompt}</RichText>
+      )}
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
           type="text"

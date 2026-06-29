@@ -25,6 +25,12 @@ export const getUserProfile: typeof fs.getUserProfile = (...a) => pick().getUser
 export const ensureUserProfile: typeof fs.ensureUserProfile = (...a) => pick().ensureUserProfile(...a)
 export const updateDisplayName: typeof fs.updateDisplayName = (...a) => pick().updateDisplayName(...a)
 export const awardCompanionXp: typeof fs.awardCompanionXp = (...a) => pick().awardCompanionXp(...a)
+export const buyStreakFreezeToken: typeof fs.buyStreakFreezeToken = (...a) =>
+  pick().buyStreakFreezeToken(...a)
+export const purchaseCosmetic: typeof fs.purchaseCosmetic = (...a) => pick().purchaseCosmetic(...a)
+export const equipCosmetic: typeof fs.equipCosmetic = (...a) => pick().equipCosmetic(...a)
+export const buyAiPip: typeof fs.buyAiPip = (...a) => pick().buyAiPip(...a)
+export const setCustomPip: typeof fs.setCustomPip = (...a) => pick().setCustomPip(...a)
 export const bumpMasteryFromPractice: typeof fs.bumpMasteryFromPractice = (...a) =>
   pick().bumpMasteryFromPractice(...a)
 export const lowerMasteryFromReview: typeof fs.lowerMasteryFromReview = (...a) =>

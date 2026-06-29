@@ -18,9 +18,20 @@ export const probabilityDistributionsLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'Let’s Just Roll',
-      body: 'Before any formulas, let’s build intuition by doing. A random game is easiest to understand by repeating it many, many times and watching what happens on average.',
+      body: 'Before any formulas, let’s build intuition by doing.\n\nA random game is easiest to understand by repeating it many, many times and watching what happens on average.',
       prompt: 'Big idea: do something random thousands of times, and patterns appear.',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'Roll a fair die 1000 times. About how many of those rolls do you think land on a 4?',
+        answer: 167,
+        revealNote: 'about 1 in 6',
+      },
     },
     {
       id: 'worked-rolls',

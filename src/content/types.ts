@@ -2,6 +2,7 @@ import type { Randomizer, StepRandomization } from './randomize'
 
 export type StepType =
   | 'intro'
+  | 'prequestion'
   | 'multiple-choice'
   | 'numeric-question'
   | 'fraction-question'
@@ -22,6 +23,11 @@ export type StepType =
   | 'conditional-select'
   | 'complement-select'
   | 'coin-flip-sim'
+  | 'sequence-build'
+  | 'venn-regions'
+  | 'stars-bars-drag'
+  | 'lattice-path'
+  | 'hyper-build'
   | 'completion'
 
 export interface Course {
@@ -90,6 +96,12 @@ export type WorkedExampleKind =
   | 'venn'
   | 'coins-sum'
   | 'steps'
+  | 'disjoint'
+  | 'binomial'
+  | 'expand'
+  | 'pascal'
+  | 'stars-bars'
+  | 'gridpaths'
 
 /** One outcome tile in a sample-space diagram or conditional selector. */
 export interface SampleOutcome {
@@ -208,9 +220,17 @@ export interface WorkedExampleConfig {
   venn?: {
     aLabel: string
     bLabel?: string
-    mode?: 'conditional' | 'complement'
+    mode?: 'conditional' | 'complement' | 'pie'
     /** LaTeX for the result box; defaults to the area-ratio (or complement) formula. */
     resultLatex?: string
+    /**
+     * `'pie'` (inclusion–exclusion) mode: region counts |A|, |B|, |A∩B|. Beats reveal
+     * `'a'`, `'b'`, `'double'` (overlap counted twice — the running total over-counts),
+     * `'subtract'` (subtract the overlap once), and `'result'` (|A∪B| = a + b − both).
+     */
+    a?: number
+    b?: number
+    both?: number
   }
   /**
    * `'coins-sum'`: a row of `coins` coins. Default `'expectation'` mode reveals
@@ -233,6 +253,70 @@ export interface WorkedExampleConfig {
   steps?: {
     lines: { latex: string; caption?: string }[]
   }
+  /**
+   * `'disjoint'`: the addition rule for mutually-exclusive events on a die. Beats
+   * reveal `'faces'` (all `sides` faces appear), `'highlight'` (the disjoint favorable
+   * faces light up), and `'result'` (P = sum of 1/sides in KaTeX). The faces can't
+   * both happen on one roll, so the chances simply add.
+   */
+  disjoint?: {
+    sides: number
+    /** The mutually-exclusive favorable faces, e.g. [2, 5]. */
+    faces: number[]
+  }
+  /**
+   * `'binomial'`: the weighted-coin binomial built from the addition rule. Beats
+   * reveal `'sequence'` (one specific n-flip sequence + its pᵏq^(n−k) probability),
+   * `'ways'` (all C(n,k) arrangements with a running count), `'add'` (they're equally
+   * likely and mutually exclusive, so add), and `'result'` (C(n,k)·pᵏq^(n−k) in KaTeX).
+   */
+  binomial?: {
+    n: number
+    k: number
+    /** Heads probability as a fraction, e.g. { n: 1, d: 3 }. */
+    p: { n: number; d: number }
+    /** The one highlighted sequence for stage 1, as 0/1 per slot (1 = heads). */
+    sequence: number[]
+  }
+  /**
+   * `'expand'`: expanding (a+b)^n by choosing a or b from each factor. Beats reveal
+   * `'factors'` (the n factors), `'products'` (all 2^n choice-strings), `'group'`
+   * (grouped by number of a's, with each like-term's count = C(n,k)), and `'result'`
+   * (the expanded polynomial, coefficients = Pascal row n).
+   */
+  expand?: {
+    n: number
+  }
+  /**
+   * `'pascal'`: Pascal's triangle. Beats reveal `'row-0'`, `'row-1'`, … one row at a
+   * time, then `'rule'` (an entry forming as the sum of the two above it), then
+   * `'result'` (row n highlighted as the coefficients of (a+b)^n).
+   */
+  pascal?: {
+    rows: number
+  }
+  /**
+   * `'stars-bars'`: the stars-and-bars bijection. Beats reveal `'stars'` (n stars),
+   * `'bars'` (insert k−1 bars splitting them into `groups`), `'solution'` (read off the
+   * tuple x₁+…+x_k = n), `'count'` (choose which positions are bars), and `'result'`
+   * (C(n+k−1, k−1)). `groups` is the example distribution (length k, sums to n).
+   */
+  starsBars?: {
+    n: number
+    k: number
+    groups: number[]
+  }
+  /**
+   * `'gridpaths'`: monotonic lattice paths on an m×n grid. Beats reveal `'grid'` (the
+   * empty grid), `'path'` (a sample right/up path), `'string'` (its R/U sequence),
+   * `'count'` (arrange m R's and n U's), and `'result'` (C(m+n, n)). `sample` is the
+   * highlighted path as a sequence of 'R'/'U' moves (m R's and n U's).
+   */
+  gridPaths?: {
+    m: number
+    n: number
+    sample: string[]
+  }
 }
 
 /** Config for the interactive conditional sample-space selector. */
@@ -246,6 +330,83 @@ export interface ConditionalSelectConfig {
   givenLabel: string
   /** Plain-language name of the favorable event, e.g. "a face card". */
   favorableLabel: string
+}
+
+/**
+ * Config for a prequestion (predict-then-reveal) primer shown right before a worked
+ * example. The learner makes a low-stakes guess; the answer is revealed IMMEDIATELY
+ * and the following worked example teaches the "why". Never graded — no mastery/XP.
+ */
+export interface PrequestionConfig {
+  /** The predict prompt, e.g. "How many outfits from 3 shirts and 2 socks?". */
+  prompt: string
+  /** The headline result the upcoming worked example resolves to (revealed on guess). */
+  answer: number | string
+  /** Optional clarifier shown with the reveal, e.g. "about 1.29". */
+  revealNote?: string
+}
+
+/**
+ * Config for the lattice-path tracer: the learner traces right/up paths from (0,0) to
+ * (m,n), and a counter climbs toward C(m+n, n) as distinct paths are found.
+ */
+export interface LatticePathConfig {
+  m: number
+  n: number
+}
+
+/**
+ * Config for the hypergeometric "build the favorable count" interactive: the learner
+ * steps the number `k` of special items drawn and watches the favorable count
+ * C(special,k)·C(total−special,draw−k) and the probability update, aiming for `target`.
+ */
+export interface HyperBuildConfig {
+  total: number
+  special: number
+  draw: number
+  target: number
+  specialLabel: string
+  otherLabel: string
+}
+
+/**
+ * Config for the draggable stars-and-bars board. The learner drags the k−1 bars among
+ * the n stars to form the target distribution; the tuple (x₁,…,x_k) updates live.
+ */
+export interface StarsBarsDragConfig {
+  n: number
+  k: number
+  /** The distribution to form (length k, sums to n), e.g. [2, 2, 1]. */
+  target: number[]
+  /** Noun for the items, e.g. "candies". */
+  itemLabel?: string
+  /** Noun for the bins, e.g. "kids". */
+  binLabel?: string
+}
+
+/**
+ * Config for the interactive Venn region counter (inclusion–exclusion). The learner
+ * adds |A|, adds |B| (watching the overlap get double-counted), then subtracts |A∩B|
+ * to land on the true union.
+ */
+export interface VennRegionsConfig {
+  a: number
+  b: number
+  both: number
+  aLabel: string
+  bLabel: string
+}
+
+/** Config for the "build every arrangement" interactive: place `heads` H among `slots`. */
+export interface SequenceBuildConfig {
+  slots: number
+  heads: number
+  /** Label for a chosen slot (default 'H'); e.g. 'b' for the binomial "choose the b's". */
+  onLabel?: string
+  /** Label for an unchosen slot (default 'T'); e.g. 'a'. */
+  offLabel?: string
+  /** What is being placed, for the banner/status (default 'heads'); e.g. 'b’s'. */
+  unit?: string
 }
 
 /** Config for the 10-coin trial simulator (running average heads → coins/2). */
@@ -413,7 +574,8 @@ export interface LessonStep {
   id: string
   type: StepType
   title: string
-  body: string
+  /** Optional supporting copy. Omitted for steps whose content is self-contained (e.g. prequestion). */
+  body?: string
   prompt?: string
   arrangementConfig?: ArrangementConfig
   connectionConfig?: ConnectionConfig
@@ -432,6 +594,12 @@ export interface LessonStep {
   conditionalSelectConfig?: ConditionalSelectConfig
   complementSelectConfig?: ComplementSelectConfig
   coinFlipSimConfig?: CoinFlipSimConfig
+  sequenceBuildConfig?: SequenceBuildConfig
+  vennRegionsConfig?: VennRegionsConfig
+  starsBarsDragConfig?: StarsBarsDragConfig
+  latticePathConfig?: LatticePathConfig
+  hyperBuildConfig?: HyperBuildConfig
+  prequestionConfig?: PrequestionConfig
   /** When set, renders a systematic, color-coded list of all orderings of these items. */
   orderingsDisplay?: ArrangementItem[]
   question?: Question
@@ -493,7 +661,15 @@ export const CONCEPT_LABELS: Record<string, string> = {
   'complement-rule': 'The Complement Rule',
   'linearity-expectation': 'Linearity of Expectation',
   'indicator-variables': 'Indicator Variables',
+  'mutually-exclusive': 'Mutually-Exclusive Events',
+  'binomial-coin': 'Binomial Probability',
+  'binomial-theorem': 'Binomial Theorem',
+  'inclusion-exclusion': 'Inclusion–Exclusion',
+  'stars-and-bars': 'Stars and Bars',
+  'contest-counting': 'Contest Counting',
+  'applied-probability': 'Applied Probability',
   synthesis: 'Mixed Review',
   probability: 'Probability',
   'expected-value': 'Expected Value',
+  'decision-ev': 'Expected Value in Decisions',
 }

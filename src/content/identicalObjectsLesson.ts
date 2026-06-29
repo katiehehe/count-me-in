@@ -38,9 +38,19 @@ export const identicalObjectsLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'Beads on a String',
-      body: 'You are threading colored beads onto a string to make a pattern. In the last lesson every object was distinct. Now some beads will be exactly the same color — and that changes how we count.',
+      body: 'You are threading colored beads onto a string to make a pattern.\n\nIn the last lesson every object was distinct. Now some beads will be exactly the same color — and that changes how we count.',
       prompt: 'Does swapping two beads of the same color create a new pattern?',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'Quick guess: with 2 red beads and 1 blue bead, how many patterns actually look different?',
+        answer: 3,
+      },
     },
     {
       id: 'worked-beads',
@@ -170,8 +180,8 @@ export const identicalObjectsLesson: Lesson = {
       id: 'formula',
       type: 'intro',
       title: 'The Pattern: Divide Out Repeats',
-      body: 'Here is the key idea. Pretend everything is distinct — that gives n! orderings. But rearranging a group of identical items just produces EXACT COPIES of arrangements you already counted, so each true pattern was counted once for every way to rearrange those identical items. A group of k identical items can be rearranged in k! ways, so you overcount by EXACTLY k!. To fix it, divide by k! for each identical group. For two reds and one blue: 3! ÷ (2! × 1!) = 6 ÷ 2 = 3.',
-      prompt: 'General rule: total = n! ÷ (a! × b! × …), where a, b, … are the sizes of each identical group — because each group of k identical items overcounts by exactly k!.',
+      body: 'Here is the key idea. Pretend everything is distinct — that gives $n!$ orderings.\n\nBut rearranging a group of identical items just produces EXACT COPIES of arrangements you already counted, so each true pattern was counted once for every way to rearrange those identical items.\n\nA group of $k$ identical items can be rearranged in $k!$ ways, so you overcount by EXACTLY $k!$. To fix it, divide by $k!$ for each identical group.\n\nFor two reds and one blue: $\\dfrac{3!}{2!\\,1!} = \\dfrac{6}{2} = 3$.',
+      prompt: 'General rule: $\\text{total} = \\dfrac{n!}{a!\\,b!\\cdots}$, where $a, b, \\dots$ are the sizes of each identical group — because each group of $k$ identical items overcounts by exactly $k!$.',
       nextButtonLabel: 'Try a bigger one',
     },
     {

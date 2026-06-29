@@ -15,9 +15,18 @@ export const linearityOfExpectationLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'Expectation Splits Over Sums',
-      body: 'Here is one of the most useful facts in probability: the expected value of a sum equals the sum of the expected values. E[X + Y] = E[X] + E[Y], and it holds ALWAYS — even when X and Y are dependent, overlapping, or tangled together. So to find the expected total of many things, you never need the whole distribution; just add up each piece’s own expectation.',
-      prompt: 'E[X + Y] = E[X] + E[Y] — always, dependence and all.',
+      body: 'Here is one of the most useful facts in probability: the expected value of a sum equals the sum of the expected values.\n\n$E[X+Y] = E[X] + E[Y]$, and it holds ALWAYS — even when X and Y are dependent, overlapping, or tangled together.\n\nSo to find the expected total of many things, you never need the whole distribution; just add up each piece’s own expectation.',
+      prompt: '$E[X+Y] = E[X] + E[Y]$ — always, dependence and all.',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt: 'Flip 10 fair coins. On average, how many heads would you expect? Take a guess.',
+        answer: 5,
+      },
     },
     {
       id: 'worked-coins-sum',

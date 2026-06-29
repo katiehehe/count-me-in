@@ -145,16 +145,28 @@ describe('mastery', () => {
 describe('streaks', () => {
   it('starts streak on first activity', () => {
     const today = todayDateString()
-    expect(updateStreak(0, null, today)).toEqual({ streakCount: 1, lastActiveDate: today })
+    expect(updateStreak(0, null, today)).toEqual({
+      streakCount: 1,
+      lastActiveDate: today,
+      tokensConsumed: 0,
+    })
   })
 
   it('increments streak on consecutive days', () => {
     const today = '2026-06-23'
-    expect(updateStreak(3, '2026-06-22', today)).toEqual({ streakCount: 4, lastActiveDate: today })
+    expect(updateStreak(3, '2026-06-22', today)).toEqual({
+      streakCount: 4,
+      lastActiveDate: today,
+      tokensConsumed: 0,
+    })
   })
 
   it('resets streak after gap', () => {
     const today = '2026-06-23'
-    expect(updateStreak(5, '2026-06-20', today)).toEqual({ streakCount: 1, lastActiveDate: today })
+    expect(updateStreak(5, '2026-06-20', today)).toEqual({
+      streakCount: 1,
+      lastActiveDate: today,
+      tokensConsumed: 0,
+    })
   })
 })

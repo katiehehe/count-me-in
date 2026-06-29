@@ -28,10 +28,20 @@ export const arrangingDistinctObjectsLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'The Trophy Shelf',
-      body: 'You won Gold, Silver, and Bronze at a math contest. Each trophy is distinct — they look different and mean different things.',
+      body: 'You won Gold, Silver, and Bronze at a math contest.\n\nEach trophy is distinct — they look different and mean different things.',
       prompt:
         'How many different ways can you arrange these three trophies left-to-right on a shelf?',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'Gut check before we count: how many different ways can 3 distinct trophies line up on a shelf?',
+        answer: 6,
+      },
     },
     {
       id: 'worked-three',

@@ -1,21 +1,32 @@
+import { DEFAULT_PIP_THEME, type PipHat, type PipTheme } from '../progress/xpWallet'
+
 export type PipMood = 'happy' | 'thinking' | 'celebrate'
 
 interface PipCatProps {
   mood?: PipMood
   className?: string
   title?: string
+  /** Color theme (from an equipped cosmetic); defaults to the classic look. */
+  theme?: PipTheme
+  /** Optional hat overlay from an equipped cosmetic. */
+  hat?: PipHat | null
 }
 
 /**
  * Pip — a custom cat companion drawn as an inline SVG (not an emoji), so it's
  * crisp at any size and can change expression. Three moods: happy (default),
  * thinking (eyes glancing up, for loading), and celebrate (closed happy eyes +
- * sparkles, for a strong result).
+ * sparkles, for a strong result). Colors come from an optional `theme` and an
+ * optional `hat` overlay, both driven by the equipped shop cosmetic.
  */
-export function PipCat({ mood = 'happy', className = '', title }: PipCatProps) {
-  const cream = '#FBE2C0'
-  const pink = '#F2A9BC'
-  const dark = '#4A4063'
+export function PipCat({
+  mood = 'happy',
+  className = '',
+  title,
+  theme = DEFAULT_PIP_THEME,
+  hat = null,
+}: PipCatProps) {
+  const { cream, pink, dark } = theme
 
   return (
     <svg
@@ -88,6 +99,22 @@ export function PipCat({ mood = 'happy', className = '', title }: PipCatProps) {
         <g fill="#F6C453">
           <path d="M52 16 l1 3 3 1 -3 1 -1 3 -1 -3 -3 -1 3 -1 z" />
           <path d="M10 20 l0.8 2.2 2.2 0.8 -2.2 0.8 -0.8 2.2 -0.8 -2.2 -2.2 -0.8 2.2 -0.8 z" />
+        </g>
+      )}
+
+      {/* Equipped hat overlay (fixed colors so it reads on any theme) */}
+      {hat === 'party' && (
+        <g>
+          <polygon points="32,2 23,21 41,21" fill="#EC4899" />
+          <polygon points="32,2 27.5,12 36.5,12" fill="#fff" opacity="0.45" />
+          <circle cx="32" cy="2.5" r="2.3" fill="#FCD34D" />
+        </g>
+      )}
+      {hat === 'wizard' && (
+        <g>
+          <ellipse cx="32" cy="21" rx="15" ry="3.2" fill="#5B21B6" />
+          <polygon points="32,1 24,21 40,21" fill="#6D28D9" />
+          <path d="M31 7 l1 2.4 2.6 0.2 -2 1.9 0.6 2.6 -2.2-1.3 -2.2 1.3 0.6-2.6 -2-1.9 2.6-0.2 z" fill="#FCD34D" />
         </g>
       )}
     </svg>

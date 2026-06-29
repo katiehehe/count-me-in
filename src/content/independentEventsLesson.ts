@@ -28,9 +28,19 @@ export const independentEventsLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'Two Events at Once',
-      body: 'Two events are INDEPENDENT when one does not change the odds of the other — like a coin flip and a die roll. The counting principle from earlier turns into a rule for probability: to get the chance of BOTH happening, multiply their individual probabilities.',
-      prompt: 'P(A and B) = P(A) × P(B) when A and B are independent.',
+      body: 'Two events are INDEPENDENT when one does not change the odds of the other — like a coin flip and a die roll.\n\nThe counting principle from earlier turns into a rule for probability: to get the chance of BOTH happening, multiply their individual probabilities.',
+      prompt: '$P(A \\text{ and } B) = P(A) \\times P(B)$ when A and B are independent.',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'Flip a coin and roll a die. Guess the probability of getting Heads AND a 6 — a fraction is fine.',
+        answer: '1/12',
+      },
     },
     {
       id: 'worked-coin-die',

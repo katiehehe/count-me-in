@@ -20,9 +20,17 @@ const CONCEPTS = [
   'complement-rule',
   'linearity-expectation',
   'indicator-variables',
+  'mutually-exclusive',
+  'binomial-coin',
+  'binomial-theorem',
+  'inclusion-exclusion',
+  'stars-and-bars',
+  'contest-counting',
+  'applied-probability',
   'synthesis',
   'probability',
   'expected-value',
+  'decision-ev',
 ]
 
 describe('repeatedArrangements', () => {

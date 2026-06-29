@@ -62,6 +62,11 @@ export const CURRICULUM_UNITS: CurriculumUnitDef[] = [
         objective: 'Decide when order matters and avoid overcounting.',
         tags: ['Order matters', 'Overcounting'],
       },
+      {
+        lessonId: 'stars-and-bars',
+        objective: 'Distribute identical items into bins — combinations with repetition.',
+        tags: ['Distributing', 'Combinations with repetition'],
+      },
     ],
   },
   {
@@ -90,6 +95,21 @@ export const CURRICULUM_UNITS: CurriculumUnitDef[] = [
         lessonId: 'complement-rule',
         objective: 'Count the opposite when it’s easier than counting directly.',
         tags: ['Probability', 'Complement'],
+      },
+      {
+        lessonId: 'addition-rule',
+        objective: 'Add disjoint chances, then count weighted-coin (binomial) outcomes.',
+        tags: ['Probability', 'Binomial'],
+      },
+      {
+        lessonId: 'binomial-theorem',
+        objective: 'See why combinations are the coefficients of (a+b)ⁿ, with Pascal’s triangle.',
+        tags: ['Algebra', 'Binomial'],
+      },
+      {
+        lessonId: 'inclusion-exclusion',
+        objective: 'Count overlapping groups: add the parts, subtract the double-counted overlaps.',
+        tags: ['Probability', 'Counting'],
       },
       {
         lessonId: 'probability-distributions',
@@ -136,23 +156,17 @@ export const CURRICULUM_UNITS: CurriculumUnitDef[] = [
       },
       {
         lessonId: 'contest-problems',
-        comingSoon: true,
-        title: 'Contest-Style Problems',
-        objective: 'Tackle olympiad-flavored counting puzzles.',
-        tags: ['Contest'],
+        objective: 'Choose and combine counting tools on olympiad-flavored puzzles.',
+        tags: ['Contest', 'Technique selection'],
       },
       {
         lessonId: 'counting-probability-applications',
-        comingSoon: true,
-        title: 'Counting + Probability Applications',
-        objective: 'Combine every tool on realistic problems.',
-        tags: ['Applications'],
+        objective: 'Count favorable ÷ total to turn realistic scenarios into probabilities.',
+        tags: ['Applications', 'Favorable ÷ total'],
       },
       {
         lessonId: 'expected-value-applications',
-        comingSoon: true,
-        title: 'Expected Value Applications',
-        objective: 'Use expectation to make strategic decisions.',
+        objective: 'Use expectation to make strategic decisions under uncertainty.',
         tags: ['Expectation', 'Strategy'],
       },
     ],

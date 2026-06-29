@@ -6,6 +6,7 @@ import { makeSeed } from '../../content/randomize'
 import { requestLessonHint } from '../lesson/lessonAi'
 import { evaluateChallengeResponse, generateChallengeQuestion } from './ai/challengeAi'
 import { recordChallengeResponse } from './challengeService'
+import { recordLearningActivity } from '../progress/progressStore'
 import type {
   ChallengeAnsweredItem,
   ChallengeGroundingContext,
@@ -220,6 +221,8 @@ export function ChallengeConversation({ ctx, plan, sessionId, onComplete }: Chal
 
     if (!mounted.current) return
     patch(index, { result: item })
+    // Answering a Challenge question is real work — keep the daily streak alive.
+    void recordLearningActivity(ctx.userId, item.understanding === 'strong')
     setChecking(false)
   }
 

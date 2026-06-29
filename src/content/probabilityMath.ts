@@ -32,6 +32,24 @@ export function divideFracs(a: Frac, b: Frac): Frac {
   return reduceFrac(a.n * b.d, a.d * b.n)
 }
 
+/** a + b as a reduced fraction (common denominator, then reduce). */
+export function addFracs(a: Frac, b: Frac): Frac {
+  return reduceFrac(a.n * b.d + b.n * a.d, a.d * b.d)
+}
+
+/**
+ * Weighted value (expected value): sum of each value times its probability —
+ * the "weighted average" reading of expectation, E = Σ(value × prob). Returns the
+ * exact reduced fraction so a payoff like $100 at probability 1/50 verifies to $2.
+ */
+export function weightedValue(values: number[], probs: Frac[]): Frac {
+  let acc: Frac = { n: 0, d: 1 }
+  for (let i = 0; i < values.length; i++) {
+    acc = addFracs(acc, reduceFrac(values[i] * probs[i].n, probs[i].d))
+  }
+  return acc
+}
+
 /**
  * Probability of drawing the same kind `draws` times in a row WITHOUT replacement,
  * starting from `same` of that kind out of `total`. Each draw shrinks both counts,
@@ -103,6 +121,114 @@ export function expectedGivenAtLeastOne(trials: number, prob: Frac): Frac {
   const miss: Frac = { n: prob.d - prob.n, d: prob.d }
   const atLeast = atLeastOneProb(miss, trials)
   return divideFracs(eN, atLeast)
+}
+
+/** C(n, k): the number of ways to choose k of n items (0 for out-of-range inputs). */
+export function choose(n: number, k: number): number {
+  if (n < 0 || k < 0 || k > n) return 0
+  k = Math.min(k, n - k)
+  let result = 1
+  for (let i = 0; i < k; i++) result = (result * (n - i)) / (i + 1)
+  return Math.round(result)
+}
+
+/** A fraction raised to a non-negative integer power, reduced. */
+function fracPow(f: Frac, exp: number): Frac {
+  let n = 1
+  let d = 1
+  for (let i = 0; i < exp; i++) {
+    n *= f.n
+    d *= f.d
+  }
+  return reduceFrac(n, d)
+}
+
+/**
+ * Binomial probability P(exactly k successes in n trials), success chance `p`:
+ * C(n,k) · pᵏ · (1−p)^(n−k), as an exact reduced fraction. The k successes each
+ * contribute p and the n−k failures each contribute q = 1−p (independence), and the
+ * C(n,k) equally likely arrangements are mutually exclusive, so they add — e.g.
+ * binomialProb(5, 2, {n:1,d:3}) = 80/243 for "exactly 2 heads in 5 flips, p = 1/3".
+ */
+export function binomialProb(n: number, k: number, p: Frac): Frac {
+  if (k < 0 || k > n) return { n: 0, d: 1 }
+  const q: Frac = { n: p.d - p.n, d: p.d }
+  return multiplyFracs([{ n: choose(n, k), d: 1 }, fracPow(p, k), fracPow(q, n - k)])
+}
+
+function intPow(base: number, exp: number): number {
+  let r = 1
+  for (let i = 0; i < exp; i++) r *= base
+  return r
+}
+
+/**
+ * The integer coefficient of the a^(n−k) b^k term in (a+b)^n: C(n,k)·a^(n−k)·b^k.
+ * With b = 1 this is the coefficient of x^k in (a + x)^n — e.g.
+ * binomialTermCoeff(5, 3, 2, 1) = C(5,3)·2² = 40 (the x³ coefficient in (2 + x)^5).
+ */
+export function binomialTermCoeff(n: number, k: number, a: number, b: number): number {
+  if (k < 0 || k > n) return 0
+  return choose(n, k) * intPow(a, n - k) * intPow(b, k)
+}
+
+/**
+ * Monotonic lattice paths from (0,0) to (m,n) using only right/up steps: arrange m R's
+ * and n U's in any order, so C(m+n, n).
+ */
+export function latticePaths(m: number, n: number): number {
+  return choose(m + n, n)
+}
+
+/** Handshakes / round-robin / "choose a pair" among n people: C(n, 2). */
+export function handshakes(n: number): number {
+  return choose(n, 2)
+}
+
+/**
+ * Stars and bars: the number of ways to put `n` identical items into `k` distinct bins
+ * = the number of non-negative integer solutions to x₁ + … + x_k = n. Lay n stars and
+ * k−1 bars in a row and choose which positions are bars: C(n + k − 1, k − 1).
+ */
+export function starsAndBars(n: number, k: number): number {
+  return choose(n + k - 1, k - 1)
+}
+
+/**
+ * Inclusion–exclusion for two sets: |A ∪ B| = |A| + |B| − |A ∩ B|. Adding the two
+ * sets counts their overlap twice, so subtract it once.
+ */
+export function unionTwo(a: number, b: number, both: number): number {
+  return a + b - both
+}
+
+/**
+ * Inclusion–exclusion for three sets: add the singles, subtract every pairwise overlap
+ * (each double-counted), then add back the triple overlap (subtracted one time too many):
+ * |A∪B∪C| = a + b + c − ab − ac − bc + abc.
+ */
+export function unionThree(
+  a: number,
+  b: number,
+  c: number,
+  ab: number,
+  ac: number,
+  bc: number,
+  abc: number,
+): number {
+  return a + b + c - ab - ac - bc + abc
+}
+
+/**
+ * Hypergeometric probability of drawing exactly `k` of the `K` special items when you
+ * draw `n` from `N` total (without replacement): C(K,k)·C(N−K,n−k) / C(N,n), as an
+ * exact reduced fraction. The favorable count multiplies "choose the special" by
+ * "choose the rest" (counting principle); the total is "choose the draw."
+ * e.g. hyperProb(5, 3, 2, 2) = 3/10 ("both of 2 drawn are red", 3 red of 5).
+ */
+export function hyperProb(N: number, K: number, n: number, k: number): Frac {
+  if (k < 0 || k > K || n - k < 0 || n - k > N - K || n < 0 || n > N) return { n: 0, d: 1 }
+  return reduceFrac(choose(K, k) * choose(N - K, n - k), choose(N, n))
 }
 
 /** A fraction as compact KaTeX, e.g. {n:2,d:5} → "\tfrac{2}{5}" (whole numbers as-is). */

@@ -30,9 +30,20 @@ export const puttingItTogetherLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'Recognize, Then Combine',
-      body: 'You now have five powerful tools: dependent events (the odds shift), conditional probability (restrict the world), the complement rule (count the easy opposite), linearity of expectation (add the parts), and indicator variables (count by summing 0/1s). Real problems rarely announce which to use — the skill is spotting that a question is secretly two or three of these stacked together. Let’s combine them.',
+      body: 'You now have five powerful tools: dependent events (the odds shift), conditional probability (restrict the world), the complement rule (count the easy opposite), linearity of expectation (add the parts), and indicator variables (count by summing 0/1s).\n\nReal problems rarely announce which to use — the skill is spotting that a question is secretly two or three of these stacked together.\n\nLet’s combine them.',
       prompt: 'The hard part isn’t the arithmetic — it’s recognizing which tools a problem needs.',
       nextButtonLabel: 'Show me a combined one',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'Roll 4 dice; you’re told at least one is a six. Guess the expected number of sixes — a round number is fine.',
+        answer: '864/671',
+        revealNote: 'about 1.29',
+      },
     },
     {
       id: 'worked-combined',

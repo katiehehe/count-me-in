@@ -1,7 +1,18 @@
 import { Math as Tex } from '../../components/Math'
+import { DieIcon } from '../../components/icons/DieIcon'
+import { EventIcon } from '../../components/icons/EventIcon'
+import { hasEventIcon } from '../../components/icons/tokenIconUtils'
 import type { ArrangementItem, WorkedExampleConfig } from '../../content/types'
 import { factorial } from '../../content/randomize'
-import { complement, drawSameProb, fracLatex, reduceFrac } from '../../content/probabilityMath'
+import {
+  binomialProb,
+  choose,
+  complement,
+  drawSameProb,
+  fracLatex,
+  multiplyFracs,
+  reduceFrac,
+} from '../../content/probabilityMath'
 import { fractionLatex, rotate, timesLatex } from './workedExampleMath'
 
 interface DiagramProps {
@@ -32,8 +43,173 @@ export function WorkedExampleDiagram({ config, isReached, isActive, animReached,
   if (kind === 'venn' && config.venn) return <Venn data={config.venn} {...shared} />
   if (kind === 'coins-sum' && config.coinsSum) return <CoinsSum data={config.coinsSum} {...shared} />
   if (kind === 'steps' && config.steps) return <Steps data={config.steps} {...shared} />
+  if (kind === 'disjoint' && config.disjoint) return <Disjoint data={config.disjoint} {...shared} />
+  if (kind === 'binomial' && config.binomial) return <Binomial data={config.binomial} {...shared} />
+  if (kind === 'expand' && config.expand) return <Expand data={config.expand} {...shared} />
+  if (kind === 'pascal' && config.pascal) return <Pascal data={config.pascal} {...shared} />
+  if (kind === 'stars-bars' && config.starsBars) return <StarsBars data={config.starsBars} {...shared} />
+  if (kind === 'gridpaths' && config.gridPaths) return <GridPaths data={config.gridPaths} {...shared} />
   if (config.items) return <Slots items={config.items} {...shared} />
   return null
+}
+
+function GridPaths({
+  data,
+  isReached,
+  isActive,
+  reduced,
+}: { data: NonNullable<WorkedExampleConfig['gridPaths']> } & KindProps) {
+  const { m, n, sample } = data
+  const gridShown = isReached('grid')
+  const pathShown = isReached('path')
+  const stringShown = isReached('string')
+  const countShown = isReached('count')
+  const total = choose(m + n, n)
+  const dur = reduced ? '0ms' : '420ms'
+  const cell = 36
+  const pad = 18
+  const W = pad * 2 + m * cell
+  const H = pad * 2 + n * cell
+  const px = (i: number) => pad + i * cell
+  const py = (j: number) => pad + (n - j) * cell
+
+  let pi = 0
+  let pj = 0
+  const nodes: [number, number][] = [[0, 0]]
+  for (const mv of sample) {
+    if (mv === 'R') pi++
+    else pj++
+    nodes.push([pi, pj])
+  }
+  const points = nodes.map(([i, j]) => `${px(i)},${py(j)}`).join(' ')
+
+  return (
+    <div className="space-y-3">
+      <div
+        className="flex justify-center rounded-2xl border-2 border-slate-200 bg-white px-3 py-4"
+        style={{ opacity: gridShown ? 1 : 0, transition: `opacity ${dur} ease` }}
+      >
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[15rem]" role="img" aria-label="lattice grid">
+          {Array.from({ length: n + 1 }).map((_, j) => (
+            <line key={`h${j}`} x1={px(0)} y1={py(j)} x2={px(m)} y2={py(j)} stroke="#e2e8f0" strokeWidth="1.5" />
+          ))}
+          {Array.from({ length: m + 1 }).map((_, i) => (
+            <line key={`v${i}`} x1={px(i)} y1={py(0)} x2={px(i)} y2={py(n)} stroke="#e2e8f0" strokeWidth="1.5" />
+          ))}
+          <polyline
+            points={points}
+            fill="none"
+            stroke="#2d5894"
+            strokeWidth="3"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            style={{ opacity: pathShown ? 1 : 0, transition: `opacity ${dur} ease` }}
+          />
+          <circle cx={px(0)} cy={py(0)} r="4" fill="#15803d" style={{ opacity: gridShown ? 1 : 0 }} />
+          <circle cx={px(m)} cy={py(n)} r="4" fill="#e11d54" style={{ opacity: gridShown ? 1 : 0 }} />
+        </svg>
+      </div>
+
+      {stringShown && (
+        <div className="flex flex-wrap justify-center gap-1">
+          {sample.map((mv, i) => (
+            <span
+              key={i}
+              className={`flex h-6 w-6 items-center justify-center rounded text-xs font-bold ${
+                mv === 'R' ? 'bg-brand-100 text-brand-700' : 'bg-amber-100 text-amber-700'
+              }`}
+            >
+              {mv}
+            </span>
+          ))}
+          <span className="ml-1 self-center text-xs text-slate-500">
+            {m} R’s, {n} U’s
+          </span>
+        </div>
+      )}
+
+      {countShown && (
+        <div className="text-center">
+          <Tex className="text-slate-600">{`\\text{arrange } ${m}\\text{ R's} + ${n}\\text{ U's: choose which }${n}\\text{ are U}`}</Tex>
+        </div>
+      )}
+
+      <div className={`${RESULT_BOX} ${isActive('result') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
+        {isReached('result') ? (
+          <Tex display className="text-brand-800">
+            {`\\binom{${m}+${n}}{${n}} = \\binom{${m + n}}{${n}} = ${total}`}
+          </Tex>
+        ) : (
+          <p className="font-mono text-sm text-slate-300">paths = …</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function StarsBars({
+  data,
+  isReached,
+  isActive,
+  reduced,
+}: { data: NonNullable<WorkedExampleConfig['starsBars']> } & KindProps) {
+  const { n, k, groups } = data
+  const starsShown = isReached('stars')
+  const barsShown = isReached('bars')
+  const solutionShown = isReached('solution')
+  const countShown = isReached('count')
+  const total = choose(n + k - 1, k - 1)
+  const dur = reduced ? '0ms' : '300ms'
+
+  const seq: ('star' | 'bar')[] = []
+  groups.forEach((g, gi) => {
+    for (let s = 0; s < g; s++) seq.push('star')
+    if (gi < groups.length - 1) seq.push('bar')
+  })
+
+  return (
+    <div className="space-y-3">
+      <div
+        className="flex flex-wrap items-center justify-center gap-1.5 rounded-2xl border-2 border-slate-200 bg-white px-3 py-5"
+        style={{ opacity: starsShown ? 1 : 0, transition: `opacity ${dur} ease` }}
+      >
+        {seq.map((sym, i) =>
+          sym === 'star' ? (
+            <span key={i} className="text-2xl text-amber-500">
+              ★
+            </span>
+          ) : (
+            <span
+              key={i}
+              className="px-0.5 text-2xl font-bold text-brand-600"
+              style={{ opacity: barsShown ? 1 : 0, transition: `opacity ${dur} ease` }}
+            >
+              |
+            </span>
+          ),
+        )}
+      </div>
+      {solutionShown && (
+        <div className="text-center">
+          <Tex className="text-slate-700">{`(${groups.join(',\\,')}) \\;\\Rightarrow\\; ${groups.join(' + ')} = ${n}`}</Tex>
+        </div>
+      )}
+      {countShown && (
+        <div className="text-center">
+          <Tex className="text-slate-600">{`${n}\\text{ stars} + ${k - 1}\\text{ bars} = ${n + k - 1}\\text{ positions; pick }${k - 1}\\text{ for bars}`}</Tex>
+        </div>
+      )}
+      <div className={`${RESULT_BOX} ${isActive('result') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
+        {isReached('result') ? (
+          <Tex display className="text-brand-800">
+            {`\\binom{${n}+${k}-1}{${k}-1} = \\binom{${n + k - 1}}{${k - 1}} = ${total}`}
+          </Tex>
+        ) : (
+          <p className="font-mono text-sm text-slate-300">C(n+k−1, k−1) = …</p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function Steps({
@@ -150,6 +326,46 @@ function Slots({ items, isReached, isActive, animReached, reduced }: { items: Ar
   )
 }
 
+/**
+ * One shirt/sock/etc. node in the connections diagram. Uses the colored SVG icon
+ * (so each item reads as its own distinct color) and falls back to the plain emoji
+ * glyph for anything without a custom icon.
+ */
+function connectionNode(
+  item: { id: string; label?: string; emoji?: string; color?: string },
+  x: number,
+  y: number,
+  shown: boolean,
+  dur: string,
+) {
+  const opacityStyle = { opacity: shown ? 1 : 0.12, transition: `opacity ${dur} ease` }
+  if (hasEventIcon(item.emoji)) {
+    const size = 24
+    return (
+      <foreignObject
+        key={item.id}
+        x={x - size / 2}
+        y={y - size / 2}
+        width={size}
+        height={size}
+        style={{ ...opacityStyle, overflow: 'visible' }}
+      >
+        <EventIcon
+          emoji={item.emoji}
+          label={item.label}
+          color={item.color}
+          className="h-6 w-6 drop-shadow-sm"
+        />
+      </foreignObject>
+    )
+  }
+  return (
+    <text key={item.id} x={x} y={y + 6} textAnchor="middle" fontSize={17} style={opacityStyle}>
+      {item.emoji ?? '•'}
+    </text>
+  )
+}
+
 function Connections({
   data,
   isReached,
@@ -197,30 +413,12 @@ function Connections({
             )
           }),
         )}
-        {data.left.map((l, i) => (
-          <text
-            key={l.id}
-            x={leftX}
-            y={yOf(i, data.left.length) + 6}
-            textAnchor="middle"
-            fontSize={17}
-            style={{ opacity: isReached('left') ? 1 : 0.12, transition: `opacity ${dur} ease` }}
-          >
-            {l.emoji ?? '•'}
-          </text>
-        ))}
-        {data.right.map((r, j) => (
-          <text
-            key={r.id}
-            x={rightX}
-            y={yOf(j, data.right.length) + 6}
-            textAnchor="middle"
-            fontSize={17}
-            style={{ opacity: isReached('right') ? 1 : 0.12, transition: `opacity ${dur} ease` }}
-          >
-            {r.emoji ?? '•'}
-          </text>
-        ))}
+        {data.left.map((l, i) =>
+          connectionNode(l, leftX, yOf(i, data.left.length), isReached('left'), dur),
+        )}
+        {data.right.map((r, j) =>
+          connectionNode(r, rightX, yOf(j, data.right.length), isReached('right'), dur),
+        )}
       </svg>
       <div className={`${RESULT_BOX} ${isActive('product') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
         {isReached('product') ? (
@@ -717,6 +915,85 @@ function Venn({
     )
   }
 
+  if (data.mode === 'pie') {
+    const a = data.a ?? 0
+    const b = data.b ?? 0
+    const both = data.both ?? 0
+    const sum = a + b
+    const union = a + b - both
+    const showA = isReached('a')
+    const showB = isReached('b')
+    const doubled = isReached('double')
+    const subtracted = isReached('subtract')
+    const showResult = isReached('result')
+    const lensAmber = doubled && !subtracted
+    const lensGreen = subtracted || showResult
+    const counter = lensGreen ? union : doubled ? sum : null
+    return (
+      <div className="space-y-3">
+        <svg viewBox="0 0 240 150" className="mx-auto w-full max-w-xs" role="img" aria-label="inclusion-exclusion Venn diagram">
+          <defs>
+            <clipPath id="venn-pie-clip">
+              <circle cx="150" cy="80" r="56" />
+            </clipPath>
+          </defs>
+          <rect x="2" y="2" width="236" height="146" rx="14" fill="#f8fafc" stroke="#e2e8f0" />
+          <circle cx="90" cy="80" r="56" fill="#e11d5422" stroke="#e11d54" strokeWidth="2" style={fade(showA)} />
+          <circle cx="150" cy="80" r="56" fill="#2d589422" stroke="#2d5894" strokeWidth="2" style={fade(showB)} />
+          <circle
+            cx="90"
+            cy="80"
+            r="56"
+            clipPath="url(#venn-pie-clip)"
+            fill={lensGreen ? '#15803d' : '#f59e0b'}
+            fillOpacity={lensAmber || lensGreen ? 0.55 : 0}
+            style={{ transition: `fill ${dur} ease, fill-opacity ${dur} ease` }}
+          />
+          <text x="56" y="34" textAnchor="middle" fontSize="12" fontWeight="700" fill="#be123c" style={fade(showA)}>
+            {data.aLabel}
+          </text>
+          <text x="184" y="34" textAnchor="middle" fontSize="12" fontWeight="700" fill="#1e3f6f" style={fade(showB)}>
+            {data.bLabel}
+          </text>
+          <text x="62" y="90" textAnchor="middle" fontSize="16" fontWeight="700" fill="#be123c" style={fade(showA)}>
+            {a - both}
+          </text>
+          <text x="178" y="90" textAnchor="middle" fontSize="16" fontWeight="700" fill="#1e3f6f" style={fade(showB)}>
+            {b - both}
+          </text>
+          <text x="120" y="90" textAnchor="middle" fontSize="16" fontWeight="700" fill="#78350f" style={fade(doubled)}>
+            {both}
+          </text>
+        </svg>
+
+        <div className="flex items-center justify-center gap-3 rounded-2xl border-2 border-brand-100 bg-white/70 px-4 py-2">
+          <span
+            className={`text-3xl font-bold ${lensGreen ? 'text-success-700' : lensAmber ? 'text-amber-600' : 'text-slate-300'}`}
+          >
+            {counter ?? '—'}
+          </span>
+          <span className="text-[11px] text-slate-500">
+            {lensGreen ? 'union (each region once)' : lensAmber ? 'overlap counted twice!' : 'running total'}
+          </span>
+        </div>
+
+        <div className={`${RESULT_BOX} ${isActive('result') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
+          {showResult ? (
+            <Tex display className="text-brand-800">
+              {`|A \\cup B| = ${a} + ${b} - ${both} = ${union}`}
+            </Tex>
+          ) : subtracted ? (
+            <Tex className="text-slate-700">{`${a} + ${b} - ${both} = ${union}`}</Tex>
+          ) : doubled ? (
+            <Tex className="text-slate-700">{`|A| + |B| = ${a} + ${b} = ${sum}`}</Tex>
+          ) : (
+            <p className="font-mono text-sm text-slate-300">|A ∪ B| = …</p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const showA = isReached('a')
   const showB = isReached('b')
   const showOverlap = isReached('overlap') || isReached('given')
@@ -895,6 +1172,330 @@ function CoinsSumIndicator({
           </Tex>
         ) : (
           <p className="font-mono text-sm text-slate-300">E[ΣXᵢ] = …</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Disjoint({
+  data,
+  isReached,
+  isActive,
+  reduced,
+}: { data: NonNullable<WorkedExampleConfig['disjoint']> } & KindProps) {
+  const fav = new Set(data.faces)
+  const shown = isReached('faces')
+  const lit = isReached('highlight')
+  const m = data.faces.length
+  const p = reduceFrac(m, data.sides)
+  const reducedDiffers = !(p.n === m && p.d === data.sides)
+  const sumLatex = data.faces.map(() => `\\tfrac{1}{${data.sides}}`).join(' + ')
+  const dur = reduced ? '0ms' : '300ms'
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl border-2 border-slate-200 bg-white px-3 py-4">
+        {Array.from({ length: data.sides }).map((_, i) => {
+          const face = i + 1
+          const highlight = lit && fav.has(face)
+          return (
+            <span
+              key={face}
+              className={`rounded-xl border-2 p-1 transition-all ${
+                highlight ? 'border-success-500 bg-success-50' : 'border-slate-200 bg-white'
+              }`}
+              style={{
+                opacity: shown ? 1 : 0,
+                transform: `scale(${shown ? 1 : 0.6})`,
+                transition: `all ${dur} ease`,
+                transitionDelay: shown && !reduced ? `${i * 55}ms` : '0ms',
+              }}
+            >
+              <DieIcon value={face} className="h-10 w-10" />
+            </span>
+          )
+        })}
+      </div>
+      <div className={`${RESULT_BOX} ${isActive('result') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
+        {isReached('result') ? (
+          <Tex display className="text-brand-800">
+            {`P = ${sumLatex} = ${fractionLatex(String(m), String(data.sides))}${reducedDiffers ? ` = ${fracLatex(p)}` : ''}`}
+          </Tex>
+        ) : (
+          <p className="font-mono text-sm text-slate-300">P = …</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function kSubsetRows(n: number, k: number): number[][] {
+  const rows: number[][] = []
+  for (let mask = 0; mask < 1 << n; mask++) {
+    let bits = 0
+    for (let i = 0; i < n; i++) if (mask & (1 << i)) bits++
+    if (bits !== k) continue
+    rows.push(Array.from({ length: n }, (_, i) => ((mask >> i) & 1 ? 1 : 0)))
+  }
+  return rows
+}
+
+function CoinTile({ head }: { head: boolean }) {
+  return (
+    <span
+      className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold ${
+        head ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-300 bg-white text-slate-400'
+      }`}
+    >
+      {head ? 'H' : 'T'}
+    </span>
+  )
+}
+
+function MiniCoin({ head }: { head: boolean }) {
+  return (
+    <span
+      className={`h-3.5 w-3.5 rounded-full border ${
+        head ? 'border-brand-500 bg-brand-500' : 'border-slate-300 bg-white'
+      }`}
+      aria-hidden
+    />
+  )
+}
+
+function Binomial({
+  data,
+  isReached,
+  isActive,
+  reduced,
+}: { data: NonNullable<WorkedExampleConfig['binomial']> } & KindProps) {
+  const { n, k, p, sequence } = data
+  const q = { n: p.d - p.n, d: p.d }
+  const perSeq = multiplyFracs([...Array(k).fill(p), ...Array(n - k).fill(q)])
+  const ways = choose(n, k)
+  const total = binomialProb(n, k, p)
+  const seqShown = isReached('sequence')
+  const waysShown = isReached('ways')
+  const addShown = isReached('add')
+  const arrangements = kSubsetRows(n, k)
+  const dur = reduced ? '0ms' : '300ms'
+  const pq = `\\left(${fracLatex(p)}\\right)^{${k}}\\left(${fracLatex(q)}\\right)^{${n - k}}`
+
+  return (
+    <div className="space-y-3">
+      <div
+        className="rounded-2xl border-2 border-slate-200 bg-white px-3 py-3"
+        style={{ opacity: seqShown ? 1 : 0, transition: `opacity ${dur} ease` }}
+      >
+        <p className="mb-2 text-center text-[11px] font-medium text-slate-400">one specific sequence</p>
+        <div className="flex justify-center gap-1.5">
+          {sequence.map((h, i) => (
+            <CoinTile key={i} head={h === 1} />
+          ))}
+        </div>
+        {seqShown && (
+          <div className="mt-2 text-center">
+            <Tex className="text-slate-700">{`P = ${pq} = ${fracLatex(perSeq)}`}</Tex>
+          </div>
+        )}
+      </div>
+
+      {waysShown && (
+        <div className="rounded-2xl border-2 border-brand-100 bg-white px-3 py-3">
+          <p className="mb-2 text-center text-[11px] font-medium text-slate-400">
+            ways to place {k} heads in {n} slots
+          </p>
+          <div className="mx-auto grid max-w-md grid-cols-2 gap-1.5 sm:grid-cols-5">
+            {arrangements.map((row, ri) => (
+              <div
+                key={ri}
+                className="flex justify-center gap-0.5 rounded-lg border border-slate-100 bg-slate-50/60 p-1.5"
+                style={{
+                  opacity: 1,
+                  transition: `all ${dur} ease`,
+                  transitionDelay: !reduced ? `${ri * 45}ms` : '0ms',
+                }}
+              >
+                {row.map((h, ci) => (
+                  <MiniCoin key={ci} head={h === 1} />
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <Tex className="text-brand-700">{`\\binom{${n}}{${k}} = ${ways}`}</Tex>
+            {addShown && (
+              <span className="text-xs text-slate-500">
+                each worth <Tex className="text-slate-600">{fracLatex(perSeq)}</Tex>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className={`${RESULT_BOX} ${isActive('result') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
+        {isReached('result') ? (
+          <Tex display className="text-brand-800">
+            {`P(\\text{${k} heads}) = \\binom{${n}}{${k}}${pq} = ${ways}\\cdot ${fracLatex(perSeq)} = ${fracLatex(total)}`}
+          </Tex>
+        ) : (
+          <p className="font-mono text-sm text-slate-300">P(exactly {k} heads) = …</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function termLatex(aExp: number, bExp: number): string {
+  const a = aExp === 0 ? '' : aExp === 1 ? 'a' : `a^{${aExp}}`
+  const b = bExp === 0 ? '' : bExp === 1 ? 'b' : `b^{${bExp}}`
+  return `${a}${b}` || '1'
+}
+
+function Expand({
+  data,
+  isReached,
+  isActive,
+  reduced,
+}: { data: NonNullable<WorkedExampleConfig['expand']> } & KindProps) {
+  const n = data.n
+  const factorsShown = isReached('factors')
+  const productsShown = isReached('products')
+  const groupShown = isReached('group')
+  const dur = reduced ? '0ms' : '300ms'
+
+  const groups: { aCount: number; products: string[][] }[] = []
+  for (let aCount = n; aCount >= 0; aCount--) groups.push({ aCount, products: [] })
+  for (let mask = 0; mask < 1 << n; mask++) {
+    const letters = Array.from({ length: n }, (_, i) => ((mask >> i) & 1 ? 'b' : 'a'))
+    const aCount = letters.filter((c) => c === 'a').length
+    groups[n - aCount].products.push(letters)
+  }
+
+  const resultLatex =
+    `(a+b)^{${n}} = ` +
+    groups
+      .map((g) => {
+        const c = choose(n, g.aCount)
+        const coeff = c === 1 ? '' : `${c}`
+        return `${coeff}${termLatex(g.aCount, n - g.aCount)}`
+      })
+      .join(' + ')
+
+  return (
+    <div className="space-y-3">
+      <div
+        className="text-center"
+        style={{ opacity: factorsShown ? 1 : 0, transition: `opacity ${dur} ease` }}
+      >
+        <Tex className="text-slate-700">{`(a+b)^{${n}} = \\underbrace{${'(a+b)'.repeat(n)}}_{${n}\\text{ factors}}`}</Tex>
+      </div>
+
+      {productsShown && (
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${n + 1}, minmax(0, 1fr))` }}>
+          {groups.map((g, gi) => (
+            <div key={gi} className="space-y-1 rounded-xl border border-slate-100 bg-slate-50/60 p-1.5">
+              {g.products.map((letters, pi) => (
+                <div key={pi} className="flex justify-center gap-0.5">
+                  {letters.map((c, ci) => (
+                    <span
+                      key={ci}
+                      className={`flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold ${
+                        c === 'a' ? 'bg-brand-100 text-brand-700' : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              ))}
+              {groupShown && (
+                <div className="border-t border-slate-200 pt-1 text-center">
+                  <Tex className="text-slate-700">{termLatex(g.aCount, n - g.aCount)}</Tex>
+                  <div className="text-[11px] font-bold text-brand-600">
+                    {choose(n, g.aCount)} {choose(n, g.aCount) === 1 ? 'way' : 'ways'}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className={`${RESULT_BOX} ${isActive('result') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
+        {isReached('result') ? (
+          <Tex display className="text-brand-800">
+            {resultLatex}
+          </Tex>
+        ) : (
+          <p className="font-mono text-sm text-slate-300">(a + b)^{n} = …</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Pascal({
+  data,
+  isReached,
+  isActive,
+  reduced,
+}: { data: NonNullable<WorkedExampleConfig['pascal']> } & KindProps) {
+  const R = data.rows
+  const ruleRow = R
+  const ruleCol = Math.max(1, Math.floor(R / 2))
+  const ruleActive = isReached('rule')
+  const resultActive = isReached('result')
+  const dur = reduced ? '0ms' : '300ms'
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1 rounded-2xl border-2 border-slate-200 bg-white px-2 py-4">
+        {Array.from({ length: R + 1 }).map((_, r) => {
+          const shown = isReached(`row-${r}`)
+          return (
+            <div
+              key={r}
+              className="flex justify-center gap-1"
+              style={{ opacity: shown ? 1 : 0, transition: `opacity ${dur} ease` }}
+            >
+              {Array.from({ length: r + 1 }).map((_, c) => {
+                const isResult = resultActive && r === R
+                const isSum = ruleActive && r === ruleRow && c === ruleCol
+                const isParent = ruleActive && r === ruleRow - 1 && (c === ruleCol - 1 || c === ruleCol)
+                const cls = isResult
+                  ? 'border-brand-500 bg-brand-50 text-brand-700'
+                  : isSum
+                    ? 'border-success-500 bg-success-50 text-success-700'
+                    : isParent
+                      ? 'border-amber-400 bg-amber-50 text-amber-700'
+                      : 'border-slate-200 bg-white text-slate-500'
+                return (
+                  <span
+                    key={c}
+                    className={`flex h-8 min-w-8 items-center justify-center rounded-lg border-2 px-1 text-sm font-bold ${cls}`}
+                  >
+                    {choose(r, c)}
+                  </span>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className={`${RESULT_BOX} ${isActive('result') && !reduced ? 'ring-2 ring-brand-300' : ''}`}>
+        {resultActive ? (
+          <Tex display className="text-brand-800">
+            {`\\text{row } ${R}: \\ \\binom{${R}}{0}, \\binom{${R}}{1}, \\dots, \\binom{${R}}{${R}}`}
+          </Tex>
+        ) : ruleActive ? (
+          <Tex display className="text-brand-800">
+            {`\\binom{${ruleRow - 1}}{${ruleCol - 1}} + \\binom{${ruleRow - 1}}{${ruleCol}} = ${choose(ruleRow - 1, ruleCol - 1)} + ${choose(ruleRow - 1, ruleCol)} = ${choose(ruleRow, ruleCol)}`}
+          </Tex>
+        ) : (
+          <p className="font-mono text-sm text-slate-300">Pascal’s triangle …</p>
         )}
       </div>
     </div>

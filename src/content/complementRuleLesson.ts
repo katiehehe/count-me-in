@@ -42,9 +42,19 @@ export const complementRuleLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'Count the Opposite Instead',
-      body: 'Every outcome either is in your event A or it isn’t — and “isn’t” is the complement, written “not A”. Together they fill the whole sample space and never overlap, so their probabilities add to 1. That gives a shortcut: P(A) = 1 − P(not A). It’s a lifesaver when A is a big, messy union but its opposite is one clean case — the classic tip-off is the phrase “at least one”.',
-      prompt: 'P(A) = 1 − P(not A). When A is hard to count directly, count “not A” and subtract.',
+      body: 'Every outcome either is in your event A or it isn’t — and “isn’t” is the complement, written “not A”.\n\nTogether they fill the whole sample space and never overlap, so their probabilities add to 1. That gives a shortcut: $P(A) = 1 - P(\\text{not }A)$.\n\nIt’s a lifesaver when A is a big, messy union but its opposite is one clean case — the classic tip-off is the phrase “at least one”.',
+      prompt: '$P(A) = 1 - P(\\text{not }A)$. When A is hard to count directly, count “not A” and subtract.',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'Flip 3 coins. Guess the probability of getting at least one heads — a fraction is fine.',
+        answer: '7/8',
+      },
     },
     {
       id: 'worked-coins',

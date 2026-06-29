@@ -8,8 +8,31 @@ export interface UserProfile {
   updatedAt: Timestamp
   streakCount: number
   lastActiveDate: string
-  /** Companion XP earned in AI Challenge Mode (reflection points). */
+  /**
+   * LIFETIME XP ever earned (monotonic, never decremented). Drives levels/ranks
+   * and the leaderboard. Spending happens against `spentXp`, never this.
+   */
   companionXp?: number
+  /** Total XP spent in the shop. Spendable balance = companionXp − spentXp. */
+  spentXp?: number
+  /** XP earned during the local day named by `xpTodayDate` (drives the daily goal ring). */
+  xpToday?: number
+  /** Local date (YYYY-MM-DD) the `xpToday` tally belongs to; a new day resets it to 0. */
+  xpTodayDate?: string
+  /** Streak-freeze tokens owned — one is auto-consumed to save a lapsed streak. */
+  streakFreezeTokens?: number
+  /** Local date (YYYY-MM-DD) a streak freeze was last auto-applied (to surface it once). */
+  lastStreakFreezeDate?: string
+  /** Cosmetic ids the learner has purchased for Pip (the free default is always available). */
+  unlockedCosmetics?: string[]
+  /** Currently equipped Pip cosmetic id, or null/undefined for the default look. */
+  equippedCosmetic?: string | null
+  /** URL of the learner's AI-generated custom Pip image (served by the Worker/R2). */
+  customPipUrl?: string | null
+  /** The prompt that produced the current custom Pip (for display/regeneration). */
+  customPipPrompt?: string | null
+  /** Remaining AI image generations from the premium purchase. */
+  customPipGensLeft?: number
   /** Local date (YYYY-MM-DD) the learner last completed a weekly review. */
   lastWeeklyReviewAt?: string
   /** Lesson ids flagged as weak in the last completed review (the persisted summary). */
@@ -18,6 +41,20 @@ export interface UserProfile {
   conceptSrs?: Record<string, ConceptSrsState>
   /** Cumulative cross-lesson practice tallies per concept (drives weak-spot targeting). */
   conceptStats?: Record<string, { correct: number; wrong: number }>
+}
+
+/**
+ * A minimal PUBLIC leaderboard entry, one per user. Deliberately PII-free: only a
+ * first name (never email/full name), lifetime XP, and derived level. Publicly
+ * readable but writable only by its owning uid (see firestore.rules).
+ */
+export interface LeaderboardEntry {
+  uid: string
+  /** First name only (or "Learner"); never a full name or email. */
+  displayName: string
+  companionXp: number
+  level: number
+  updatedAt: Timestamp
 }
 
 /**
@@ -82,4 +119,6 @@ export interface DailyActivityDoc {
   questionsAnswered: number
   correctAnswers: number
   activeMinutesEstimate: number
+  /** XP earned this local day (history/analytics; the header reads profile.xpToday). */
+  xpEarned?: number
 }

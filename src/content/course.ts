@@ -25,15 +25,22 @@ import { countingPrincipleLesson } from './countingPrincipleLesson'
 import { arrangingDistinctObjectsLesson } from './arrangingDistinctObjectsLesson'
 import { identicalObjectsLesson } from './identicalObjectsLesson'
 import { combinationsVsPermutationsLesson } from './combinationsVsPermutationsLesson'
+import { starsAndBarsLesson } from './starsAndBarsLesson'
 import { independentEventsLesson } from './independentEventsLesson'
 import { dependentEventsLesson } from './dependentEventsLesson'
 import { conditionalProbabilityLesson } from './conditionalProbabilityLesson'
 import { complementRuleLesson } from './complementRuleLesson'
+import { additionRuleLesson } from './additionRuleLesson'
+import { binomialTheoremLesson } from './binomialTheoremLesson'
+import { inclusionExclusionLesson } from './inclusionExclusionLesson'
 import { probabilityDistributionsLesson } from './probabilityDistributionsLesson'
 import { expectedValueLesson } from './expectedValueLesson'
 import { linearityOfExpectationLesson } from './linearityOfExpectationLesson'
 import { indicatorVariablesLesson } from './indicatorVariablesLesson'
 import { puttingItTogetherLesson } from './puttingItTogetherLesson'
+import { contestProblemsLesson } from './contestProblemsLesson'
+import { applicationsLesson } from './applicationsLesson'
+import { expectedValueApplicationsLesson } from './expectedValueApplicationsLesson'
 
 export const course: Course = {
   id: 'contest-counting',
@@ -46,15 +53,22 @@ export const course: Course = {
     arrangingDistinctObjectsLesson,
     identicalObjectsLesson,
     combinationsVsPermutationsLesson,
+    starsAndBarsLesson,
     independentEventsLesson,
     dependentEventsLesson,
     conditionalProbabilityLesson,
     complementRuleLesson,
+    additionRuleLesson,
+    binomialTheoremLesson,
+    inclusionExclusionLesson,
     probabilityDistributionsLesson,
     expectedValueLesson,
     linearityOfExpectationLesson,
     indicatorVariablesLesson,
     puttingItTogetherLesson,
+    contestProblemsLesson,
+    applicationsLesson,
+    expectedValueApplicationsLesson,
   ],
 }
 

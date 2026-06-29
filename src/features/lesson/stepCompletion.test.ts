@@ -21,6 +21,12 @@ const INTERACTIVE_TYPES: StepType[] = [
   'conditional-select',
   'complement-select',
   'coin-flip-sim',
+  'sequence-build',
+  'venn-regions',
+  'stars-bars-drag',
+  'lattice-path',
+  'hyper-build',
+  'prequestion',
 ]
 
 const blankState: StepState = { answered: false, correct: null, answer: null }

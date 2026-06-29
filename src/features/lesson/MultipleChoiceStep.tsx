@@ -1,4 +1,5 @@
 import { FeedbackBox } from '../../components/FeedbackBox'
+import { RichText } from '../../components/RichText'
 import type { FeedbackMap, Question } from '../../content/types'
 import { StepHelp, type StepAiHelp } from './StepHelp'
 
@@ -74,7 +75,9 @@ export function MultipleChoiceStep({
 
   return (
     <div>
-      {prompt && <p className="mb-4 text-base font-medium text-slate-800 sm:text-lg">{prompt}</p>}
+      {prompt && (
+        <RichText className="mb-4 text-base font-medium text-slate-800 sm:text-lg">{prompt}</RichText>
+      )}
       <div className="space-y-2.5">
         {question.choices?.map((choice, i) => {
           let style = 'border-brand-100 bg-white hover:border-brand-300 hover:bg-brand-50'
@@ -104,7 +107,7 @@ export function MultipleChoiceStep({
               >
                 {String.fromCharCode(65 + i)}
               </span>
-              {choice}
+              <RichText inline>{choice}</RichText>
             </button>
           )
         })}

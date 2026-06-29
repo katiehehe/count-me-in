@@ -36,6 +36,10 @@ const WeeklyReviewPage = lazy(() =>
 const TrainingLabPage = lazy(() =>
   import('../features/practice/TrainingLabPage').then((m) => ({ default: m.TrainingLabPage })),
 )
+const ShopPage = lazy(() => import('../features/shop/ShopPage').then((m) => ({ default: m.ShopPage })))
+const LeaderboardPage = lazy(() =>
+  import('../features/leaderboard/LeaderboardPage').then((m) => ({ default: m.LeaderboardPage })),
+)
 
 // Keying on the lesson id forces a full remount when navigating directly from one
 // lesson to the next (same route). Without this, LessonPage keeps the course
@@ -110,6 +114,22 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <TrainingLabPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'shop',
+        element: (
+          <ProtectedRoute>
+            <ShopPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'leaderboard',
+        element: (
+          <ProtectedRoute>
+            <LeaderboardPage />
           </ProtectedRoute>
         ),
       },

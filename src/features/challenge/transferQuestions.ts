@@ -9,6 +9,13 @@ import {
   permutations,
   repeatedArrangements,
 } from '../simulation/permutationMath'
+import {
+  handshakes,
+  latticePaths,
+  starsAndBars,
+  unionTwo,
+  weightedValue,
+} from '../../content/probabilityMath'
 
 /**
  * A transfer question whose correct `answer` is computed entirely in code. The AI
@@ -176,6 +183,107 @@ function indicatorQ(rng: Rng): Generated {
   }
 }
 
+function mutuallyExclusiveQ(rng: Rng): Generated {
+  const choice = pick(rng, [
+    'a King or a Queen',
+    'an Ace or a King',
+    'a 7 or a 10',
+    'a Jack or a Queen',
+  ])
+  return {
+    kind: 'mutually-exclusive',
+    prompt: `From a standard 52-card deck, a single card can’t be two ranks at once. How many cards are ${choice}? (Add the disjoint counts.)`,
+    answer: 8,
+    formula: '4 + 4',
+  }
+}
+
+function binomialCoinQ(rng: Rng): Generated {
+  const n = pick(rng, [5, 6, 7])
+  const k = pick(rng, [2, 3])
+  return {
+    kind: 'binomial-coin',
+    prompt: `A coin is flipped ${n} times. How many of the sequences have exactly ${k} heads?`,
+    answer: combinations(n, k),
+    formula: `C(${n}, ${k})`,
+  }
+}
+
+function binomialTheoremQ(rng: Rng): Generated {
+  const n = pick(rng, [4, 5, 6])
+  const k = pick(rng, [1, 2, 3])
+  return {
+    kind: 'binomial-theorem',
+    prompt: `In the expansion of (a + b)^${n}, what is the coefficient of a^${n - k} b^${k}? (It’s the number of ways to choose which ${k} factors give b.)`,
+    answer: combinations(n, k),
+    formula: `C(${n}, ${k})`,
+  }
+}
+
+function inclusionExclusionQ(rng: Rng): Generated {
+  const opt = pick(rng, [
+    { q: 'a heart or a king', a: 13, b: 4, both: 1 },
+    { q: 'a heart or a face card', a: 13, b: 12, both: 3 },
+    { q: 'a spade or a queen', a: 13, b: 4, both: 1 },
+  ] as const)
+  return {
+    kind: 'inclusion-exclusion',
+    prompt: `From a standard 52-card deck, how many cards are ${opt.q}? (Add the two groups, then subtract the overlap counted twice.)`,
+    answer: unionTwo(opt.a, opt.b, opt.both),
+    formula: `${opt.a} + ${opt.b} − ${opt.both}`,
+  }
+}
+
+function starsAndBarsQ(rng: Rng): Generated {
+  const k = pick(rng, [3, 4])
+  const n = pick(rng, [5, 6, 7])
+  return {
+    kind: 'stars-and-bars',
+    prompt: `In how many ways can ${n} identical candies be distributed among ${k} kids (a kid may get 0)? Use stars and bars.`,
+    answer: starsAndBars(n, k),
+    formula: `C(${n}+${k}−1, ${k}−1)`,
+  }
+}
+
+function appliedProbabilityQ(rng: Rng): Generated {
+  if (rng() < 0.5) {
+    const k = pick(rng, [1, 2, 3])
+    return {
+      kind: 'applied-probability',
+      prompt: `How many 5-card hands contain exactly ${k} ace${k === 1 ? '' : 's'}? (Choose the aces, then the rest.)`,
+      answer: combinations(4, k) * combinations(48, 5 - k),
+      formula: `C(4,${k})·C(48,${5 - k})`,
+    }
+  }
+  const h = pick(rng, [2, 3])
+  return {
+    kind: 'applied-probability',
+    prompt: `How many ${h}-card hands contain at least one ace? (Total minus the no-ace hands.)`,
+    answer: combinations(52, h) - combinations(48, h),
+    formula: `C(52,${h}) − C(48,${h})`,
+  }
+}
+
+function contestCountingQ(rng: Rng): Generated {
+  if (rng() < 0.5) {
+    const nn = pick(rng, [6, 8, 10, 12])
+    return {
+      kind: 'contest-counting',
+      prompt: `${nn} people each shake hands once with every other person. How many handshakes happen in total?`,
+      answer: handshakes(nn),
+      formula: `C(${nn}, 2)`,
+    }
+  }
+  const mm = pick(rng, [2, 3, 4])
+  const nn = pick(rng, [2, 3])
+  return {
+    kind: 'contest-counting',
+    prompt: `How many right/up lattice paths go from (0,0) to (${mm},${nn})?`,
+    answer: latticePaths(mm, nn),
+    formula: `C(${mm}+${nn}, ${nn})`,
+  }
+}
+
 function synthesisQ(rng: Rng): Generated {
   const target = pick(rng, [
     { name: 'an ace', m: 4 },
@@ -202,6 +310,29 @@ function linearityQ(rng: Rng): Generated {
   }
 }
 
+function decisionEvQ(rng: Rng): Generated {
+  if (pick(rng, [true, false])) {
+    const k = pick(rng, [4, 5, 10, 20, 25])
+    const v = intIn(rng, 2, 5)
+    const prize = k * v
+    const ev = weightedValue([prize, 0], [{ n: 1, d: k }, { n: k - 1, d: k }])
+    return {
+      kind: 'decision-ev',
+      prompt: `A raffle ticket wins $${prize} with probability 1/${k} and nothing otherwise. What ticket price (in dollars) makes the game fair — equal to the expected winnings?`,
+      answer: ev.n / ev.d,
+      formula: `${prize} × 1/${k}`,
+    }
+  }
+  const perPlay = intIn(rng, 2, 5)
+  const plays = 10 * pick(rng, [1, 2, 3])
+  return {
+    kind: 'decision-ev',
+    prompt: `Each play of a game has expected winnings of $${perPlay}. By linearity, what total winnings (in dollars) do you expect over ${plays} independent plays?`,
+    answer: perPlay * plays,
+    formula: `${plays} × ${perPlay}`,
+  }
+}
+
 const GENERATORS: Record<string, (rng: Rng) => Generated> = {
   'counting-principle': countingPrincipleQ,
   permutation: nprQ,
@@ -216,9 +347,17 @@ const GENERATORS: Record<string, (rng: Rng) => Generated> = {
   'complement-rule': complementQ,
   'linearity-expectation': linearityQ,
   'indicator-variables': indicatorQ,
+  'mutually-exclusive': mutuallyExclusiveQ,
+  'binomial-coin': binomialCoinQ,
+  'binomial-theorem': binomialTheoremQ,
+  'inclusion-exclusion': inclusionExclusionQ,
+  'stars-and-bars': starsAndBarsQ,
+  'contest-counting': contestCountingQ,
+  'applied-probability': appliedProbabilityQ,
   synthesis: synthesisQ,
   probability: expectedCountQ,
   'expected-value': expectedCountQ,
+  'decision-ev': decisionEvQ,
 }
 
 /** Concept ids we can build a deterministic transfer question for. */

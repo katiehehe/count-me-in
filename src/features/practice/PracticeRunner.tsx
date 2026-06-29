@@ -165,6 +165,38 @@ export function PracticeRunner({
 
   const locked = result === 'correct'
 
+  // Pressing Enter moves to the next question — but only once it's correct, and only on
+  // a SECOND Enter (the first Enter that checks a correct answer just shows the
+  // feedback). We snapshot "was it already correct?" in the capture phase, before React
+  // flushes the check, so the checking keystroke never also advances.
+  const resultRef = useRef(result)
+  resultRef.current = result
+  const correctBeforeKeyRef = useRef(false)
+  const nextRef = useRef(nextQuestion)
+  nextRef.current = nextQuestion
+
+  useEffect(() => {
+    const onCapture = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.shiftKey) return
+      correctBeforeKeyRef.current = resultRef.current === 'correct'
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.shiftKey) return
+      const target = e.target as HTMLElement | null
+      if (target && target.tagName === 'TEXTAREA') return
+      if (correctBeforeKeyRef.current && resultRef.current === 'correct') {
+        e.preventDefault()
+        nextRef.current()
+      }
+    }
+    window.addEventListener('keydown', onCapture, true)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onCapture, true)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [])
+
   return (
     <>
       <div className="animate-fade-up mx-auto max-w-2xl px-4 py-8 pb-24">

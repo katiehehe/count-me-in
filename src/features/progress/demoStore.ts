@@ -1,7 +1,15 @@
 import { Timestamp } from 'firebase/firestore'
 import type { LessonProgressDoc, UserProfile } from '../../firebase/firestoreTypes'
 import { initialSrsState, scheduleNext } from '../practice/conceptSrs'
-import { todayDateString, updateStreak } from './streaks'
+import { nextStreakFields, todayDateString } from './streaks'
+import {
+  canAfford,
+  computeBuyAiPip,
+  computeSetCustomPip,
+  cosmeticById,
+  isCosmeticOwned,
+  STREAK_FREEZE_COST,
+} from './xpWallet'
 
 /**
  * A zero-write, in-memory progress store used for anonymous "demo" sessions.
@@ -50,6 +58,15 @@ export async function ensureUserProfile(
     streakCount: 0,
     lastActiveDate: '',
     companionXp: 0,
+    spentXp: 0,
+    xpToday: 0,
+    xpTodayDate: '',
+    streakFreezeTokens: 0,
+    unlockedCosmetics: [],
+    equippedCosmetic: null,
+    customPipUrl: null,
+    customPipPrompt: null,
+    customPipGensLeft: 0,
     createdAt: now,
     updatedAt: now,
   }
@@ -61,8 +78,68 @@ export async function awardCompanionXp(uid: string, amount: number) {
   if (amount <= 0) return
   const profile = profiles.get(uid)
   if (!profile) return
+  const today = todayDateString()
   profile.companionXp = (profile.companionXp ?? 0) + amount
+  profile.xpToday = (profile.xpTodayDate === today ? profile.xpToday ?? 0 : 0) + amount
+  profile.xpTodayDate = today
   profile.updatedAt = Timestamp.now()
+}
+
+export async function buyStreakFreezeToken(uid: string): Promise<boolean> {
+  const profile = profiles.get(uid)
+  if (!profile) return false
+  if (!canAfford(profile, STREAK_FREEZE_COST)) return false
+  profile.spentXp = (profile.spentXp ?? 0) + STREAK_FREEZE_COST
+  profile.streakFreezeTokens = (profile.streakFreezeTokens ?? 0) + 1
+  profile.updatedAt = Timestamp.now()
+  return true
+}
+
+export async function purchaseCosmetic(uid: string, cosmeticId: string): Promise<boolean> {
+  const cosmetic = cosmeticById(cosmeticId)
+  if (!cosmetic || cosmetic.cost <= 0) return false
+  const profile = profiles.get(uid)
+  if (!profile) return false
+  if (isCosmeticOwned(profile, cosmeticId)) return false
+  if (!canAfford(profile, cosmetic.cost)) return false
+  profile.spentXp = (profile.spentXp ?? 0) + cosmetic.cost
+  profile.unlockedCosmetics = [...(profile.unlockedCosmetics ?? []), cosmeticId]
+  profile.updatedAt = Timestamp.now()
+  return true
+}
+
+export async function equipCosmetic(uid: string, cosmeticId: string | null): Promise<boolean> {
+  const profile = profiles.get(uid)
+  if (!profile) return false
+  if (cosmeticId && !isCosmeticOwned(profile, cosmeticId)) return false
+  profile.equippedCosmetic = cosmeticId
+  profile.updatedAt = Timestamp.now()
+  return true
+}
+
+export async function buyAiPip(uid: string): Promise<boolean> {
+  const profile = profiles.get(uid)
+  if (!profile) return false
+  const r = computeBuyAiPip(profile)
+  if (!r) return false
+  profile.spentXp = r.spentXp
+  profile.unlockedCosmetics = r.unlockedCosmetics
+  profile.customPipGensLeft = r.customPipGensLeft
+  profile.updatedAt = Timestamp.now()
+  return true
+}
+
+export async function setCustomPip(uid: string, url: string, prompt: string): Promise<boolean> {
+  const profile = profiles.get(uid)
+  if (!profile) return false
+  const r = computeSetCustomPip(profile, url, prompt)
+  if (!r) return false
+  profile.customPipUrl = r.customPipUrl
+  profile.customPipPrompt = r.customPipPrompt
+  profile.customPipGensLeft = r.customPipGensLeft
+  profile.equippedCosmetic = r.equippedCosmetic
+  profile.updatedAt = Timestamp.now()
+  return true
 }
 
 export async function markWeeklyReviewDone(uid: string, weakLessonIds: string[]) {
@@ -82,6 +159,7 @@ export async function recordConceptReview(uid: string, conceptId: string, correc
   conceptSrs[conceptId] = scheduleNext(prev, correct, today)
   profile.conceptSrs = conceptSrs
   profile.updatedAt = Timestamp.now()
+  bumpStreak(uid)
 }
 
 export async function seedConceptSrs(uid: string, conceptIds: string[]) {
@@ -106,6 +184,7 @@ export async function recordConceptPractice(uid: string, conceptId: string, corr
     : { correct: prev.correct, wrong: prev.wrong + 1 }
   profile.conceptStats = conceptStats
   profile.updatedAt = Timestamp.now()
+  bumpStreak(uid)
 }
 
 const PRACTICE_MASTERY_STEP = 0.08
@@ -306,12 +385,17 @@ function bumpStreak(uid: string) {
   const profile = profiles.get(uid)
   if (!profile) return
   const today = todayDateString()
-  const { streakCount, lastActiveDate } = updateStreak(
-    profile.streakCount,
+  const fields = nextStreakFields(
+    profile.streakCount ?? 0,
     profile.lastActiveDate || null,
+    profile.streakFreezeTokens ?? 0,
     today,
   )
-  profile.streakCount = streakCount
-  profile.lastActiveDate = lastActiveDate
+  profile.streakCount = fields.streakCount
+  profile.lastActiveDate = fields.lastActiveDate
+  if (fields.streakFreezeTokens !== undefined) profile.streakFreezeTokens = fields.streakFreezeTokens
+  if (fields.lastStreakFreezeDate !== undefined) {
+    profile.lastStreakFreezeDate = fields.lastStreakFreezeDate
+  }
   profile.updatedAt = Timestamp.now()
 }

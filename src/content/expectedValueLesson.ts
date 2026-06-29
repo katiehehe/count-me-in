@@ -29,9 +29,20 @@ export const expectedValueLesson: Lesson = {
       id: 'intro',
       type: 'intro',
       title: 'What Is Expected Value?',
-      body: 'EXPECTED VALUE is the average outcome you would get by repeating a game many, many times. To compute it, multiply each possible payout by its probability, then add those products together. A normal average weights every value equally; expected value weights each value by how likely it is.',
-      prompt: 'Expected value = the long-run average payout per play.',
+      body: 'EXPECTED VALUE is the average outcome you would get by repeating a game many, many times.\n\nTo compute it, multiply each possible payout by its probability, then add those products together.\n\nA normal average weights every value equally; expected value weights each value by how likely it is.',
+      prompt:
+        'Expected value is a WEIGHTED average: each payout times its probability, summed — $E = \\sum x \\cdot p(x)$ — the long-run average per play.',
       nextButtonLabel: 'Show me how first',
+    },
+    {
+      id: 'prequestion',
+      type: 'prequestion',
+      title: 'Take a Guess First',
+      prequestionConfig: {
+        prompt:
+          'A bag has equally likely slips worth $2, $4, and $9. Guess the average payout per draw.',
+        answer: 5,
+      },
     },
     {
       id: 'worked-average',
@@ -61,6 +72,10 @@ export const expectedValueLesson: Lesson = {
           },
           {
             say: 'Add the payouts — two plus four plus nine is fifteen — then divide by the three slips: fifteen over three equals five dollars.',
+            highlight: 'result',
+          },
+          {
+            say: 'Notice what dividing by three really did: it weighted each slip by its one-third chance. Two times a third, plus four times a third, plus nine times a third, also gives five. That weighted sum — each value times its probability — is what expected value always is. When the chances are not equal, you cannot just average; you weight by probability.',
             highlight: 'result',
           },
         ],
@@ -156,7 +171,7 @@ export const expectedValueLesson: Lesson = {
       id: 'weighted-prize',
       type: 'numeric-question',
       title: 'Unequal Chances',
-      body: 'A raffle ticket wins $10 with probability 1/5, and wins $0 the rest of the time.',
+      body: 'Now the outcomes are NOT equally likely, so a plain average won’t do — weight each payout by its probability. A raffle ticket wins $10 with probability 1/5, and wins $0 the rest of the time.',
       prompt: 'What is the expected payout of the ticket, in dollars?',
       question: {
         inputType: 'numeric',
@@ -182,7 +197,7 @@ export const expectedValueLesson: Lesson = {
           (v) => String(v.ev),
         )
         return {
-          body: `A raffle ticket wins $${prize} with probability 1/${k}, and wins $0 the rest of the time.`,
+          body: `Now the outcomes are NOT equally likely, so a plain average won’t do — weight each payout by its probability. A raffle ticket wins $${prize} with probability 1/${k}, and wins $0 the rest of the time.`,
           question: { correctAnswer: ev, explanation: `${prize} × 1/${k} + 0 × ${k - 1}/${k} = ${ev} + 0 = $${ev} expected.` },
           feedback: {
             correct: `Yes! ${prize} × 1/${k} = $${ev} expected payout.`,

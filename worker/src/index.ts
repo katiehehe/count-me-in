@@ -15,6 +15,8 @@ interface Env {
   OPENAI_API_KEY: string
   FIREBASE_PROJECT_ID: string
   ALLOWED_ORIGINS: string
+  /** R2 bucket holding generated custom-Pip images. */
+  PIP_BUCKET: R2Bucket
 }
 
 const MODEL = 'gpt-4o'
@@ -292,6 +294,147 @@ async function handleTts(
   return new Response(toCache.body, { status: 200, headers: { 'Content-Type': 'audio/mpeg', ...cors } })
 }
 
+// --- Custom Pip image (AI) --------------------------------------------------
+
+// A FIXED wholesome style wrapper. The user's text is inserted only as a "theme",
+// so it can't override the mascot style, and the prompt forbids text/people/etc.
+const PIP_STYLE_PREFIX =
+  'A cute, wholesome, round chibi cartoon cat mascot character, kawaii style, big friendly ' +
+  'eyes, soft pastel colors, simple flat vector illustration, centered, on a plain solid ' +
+  'light background. Strictly child-appropriate and friendly. No text, words, letters, ' +
+  'numbers, logos, watermarks, humans, weapons, blood, or anything scary or inappropriate. ' +
+  'It must be a single adorable cat. Theme the cat as: '
+
+function buildPipPrompt(theme: string): string {
+  // Drop control characters (without a control-char regex), then collapse spaces.
+  const printable = Array.from(theme)
+    .filter((ch) => {
+      const code = ch.codePointAt(0) ?? 0
+      return code >= 0x20 && code !== 0x7f
+    })
+    .join('')
+  const clean = printable.replace(/\s+/g, ' ').trim().slice(0, 300)
+  return `${PIP_STYLE_PREFIX}"${clean}".`
+}
+
+/** Runs the prompt through OpenAI moderation; true means it should be rejected. */
+async function moderateFlagged(input: string, apiKey: string): Promise<boolean> {
+  const res = await fetch('https://api.openai.com/v1/moderations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: 'omni-moderation-latest', input }),
+  })
+  if (!res.ok) throw new Error(`Moderation HTTP ${res.status}`)
+  const data = (await res.json()) as { results?: { flagged?: boolean }[] }
+  return data.results?.some((r) => r.flagged) ?? false
+}
+
+/** Generates a PNG via OpenAI Images (gpt-image-1, falling back to dall-e-2). */
+async function generatePipImageBytes(prompt: string, apiKey: string): Promise<Uint8Array> {
+  // gpt-image-1 returns base64 (b64_json) and rejects a response_format param.
+  const primary = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: 'gpt-image-1', prompt, size: '1024x1024', quality: 'low', n: 1 }),
+  })
+  if (primary.ok) {
+    const d = (await primary.json()) as { data?: { b64_json?: string }[] }
+    const b64 = d.data?.[0]?.b64_json
+    if (b64) return base64UrlToBytes(b64)
+  }
+  // Fallback: dall-e-2 supports a small 512×512 render and explicit b64_json.
+  const fallback = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: 'dall-e-2', prompt, size: '512x512', n: 1, response_format: 'b64_json' }),
+  })
+  if (!fallback.ok) throw new Error(`Image HTTP ${fallback.status}`)
+  const d = (await fallback.json()) as { data?: { b64_json?: string }[] }
+  const b64 = d.data?.[0]?.b64_json
+  if (!b64) throw new Error('No image bytes')
+  return base64UrlToBytes(b64)
+}
+
+/** The token's Firebase sign-in provider (e.g. 'anonymous', 'google.com'), if present. */
+function tokenSignInProvider(token: string): string | null {
+  try {
+    const payload = JSON.parse(base64UrlToString(token.split('.')[1])) as {
+      firebase?: { sign_in_provider?: string }
+    }
+    return payload.firebase?.sign_in_provider ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * POST /pip-image → { prompt } → { url }. Moderates the prompt, wraps it in the
+ * fixed wholesome style, generates a PNG, stores it in R2 under an unguessable
+ * key, and returns an absolute URL to the public GET route below. Restricted to
+ * real (non-anonymous) accounts to cap AI cost/abuse.
+ */
+async function handlePipImage(
+  request: Request,
+  env: Env,
+  uid: string,
+  token: string,
+  cors: Record<string, string>,
+): Promise<Response> {
+  if (tokenSignInProvider(token) === 'anonymous') {
+    return json({ error: 'signin_required' }, 403, cors)
+  }
+
+  let body: { prompt?: string }
+  try {
+    body = (await request.json()) as { prompt?: string }
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400, cors)
+  }
+  const prompt = (body.prompt ?? '').trim()
+  if (!prompt || prompt.length > 500) return json({ error: 'Invalid request' }, 400, cors)
+
+  let flagged: boolean
+  try {
+    flagged = await moderateFlagged(prompt, env.OPENAI_API_KEY)
+  } catch {
+    return json({ error: 'moderation_failed' }, 502, cors)
+  }
+  if (flagged) return json({ error: 'rejected' }, 400, cors)
+
+  let bytes: Uint8Array
+  try {
+    bytes = await generatePipImageBytes(buildPipPrompt(prompt), env.OPENAI_API_KEY)
+  } catch {
+    return json({ error: 'generation_failed' }, 502, cors)
+  }
+
+  const key = `pip/${uid}/${crypto.randomUUID()}.png`
+  try {
+    await env.PIP_BUCKET.put(key, bytes, { httpMetadata: { contentType: 'image/png' } })
+  } catch {
+    return json({ error: 'storage_failed' }, 502, cors)
+  }
+
+  const origin = new URL(request.url).origin
+  return json({ url: `${origin}/${key}` }, 200, cors)
+}
+
+/** GET /pip/<key> → streams the stored PNG (public; the key holds a random id). */
+async function handlePipGet(url: URL, env: Env): Promise<Response> {
+  const key = decodeURIComponent(url.pathname.slice(1))
+  if (!key.startsWith('pip/')) return new Response('Not found', { status: 404 })
+  const obj = await env.PIP_BUCKET.get(key)
+  if (!obj) return new Response('Not found', { status: 404 })
+  return new Response(obj.body, {
+    status: 200,
+    headers: {
+      'Content-Type': obj.httpMetadata?.contentType ?? 'image/png',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Access-Control-Allow-Origin': '*',
+    },
+  })
+}
+
 // --- HTTP plumbing ----------------------------------------------------------
 
 function corsHeaders(origin: string, env: Env): Record<string, string> {
@@ -302,7 +445,7 @@ function corsHeaders(origin: string, env: Env): Record<string, string> {
   const allow = allowed.includes(origin) ? origin : (allowed[0] ?? '*')
   return {
     'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
@@ -320,8 +463,15 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const origin = request.headers.get('Origin') ?? ''
     const cors = corsHeaders(origin, env)
+    const url = new URL(request.url)
 
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors })
+
+    // Public image delivery (no auth): the key carries an unguessable random id.
+    if (request.method === 'GET' && url.pathname.startsWith('/pip/')) {
+      return handlePipGet(url, env)
+    }
+
     if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405, cors)
 
     const authHeader = request.headers.get('Authorization') ?? ''
@@ -331,8 +481,10 @@ export default {
     const uid = await verifyFirebaseToken(token, env.FIREBASE_PROJECT_ID)
     if (!uid) return json({ error: 'Invalid auth token' }, 401, cors)
 
-    // The same Worker serves the challenge proxy (root) and the TTS endpoint (/tts).
-    if (new URL(request.url).pathname.endsWith('/tts')) return handleTts(request, env, ctx, cors)
+    // The same Worker serves the challenge proxy (root), TTS (/tts), and the
+    // custom-Pip image generator (/pip-image).
+    if (url.pathname.endsWith('/pip-image')) return handlePipImage(request, env, uid, token, cors)
+    if (url.pathname.endsWith('/tts')) return handleTts(request, env, ctx, cors)
 
     let body: { action?: string; prompt?: string }
     try {

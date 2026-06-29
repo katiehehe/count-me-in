@@ -26,9 +26,17 @@ const CONCEPTS = [
   'complement-rule',
   'linearity-expectation',
   'indicator-variables',
+  'mutually-exclusive',
+  'binomial-coin',
+  'binomial-theorem',
+  'inclusion-exclusion',
+  'stars-and-bars',
+  'contest-counting',
+  'applied-probability',
   'synthesis',
   'probability',
   'expected-value',
+  'decision-ev',
 ]
 
 /** Builds a progress doc that marks every graded step in a lesson first-try wrong. */

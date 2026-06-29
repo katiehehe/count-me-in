@@ -133,6 +133,17 @@ export function cancelSpeech(): void {
   if (pending) pending()
 }
 
+/**
+ * Warms the audio cache for an upcoming line so the next beat can start with no
+ * network gap. Fire-and-forget; failures are fine (the player fetches on demand).
+ */
+export function prefetchLine(text: string, voice = 'nova', speed = 1): void {
+  const line = text.trim()
+  if (!line) return
+  if (!isAiEnabled() || !ttsUrl()) return
+  void fetchTtsBlob(line, voice, clampSpeed(speed)).catch(() => {})
+}
+
 /** Narrates `text` and resolves when it finishes (AI voice → browser speech → silent delay). */
 export async function speakLine(text: string, voice = 'nova', speed = 1): Promise<void> {
   const line = text.trim()

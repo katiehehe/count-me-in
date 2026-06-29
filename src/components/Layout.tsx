@@ -1,6 +1,15 @@
 import { Suspense } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthProvider'
+import { todayDateString } from '../features/progress/streaks'
+import {
+  DAILY_XP_GOAL,
+  isDailyGoalMet,
+  levelFromXp,
+  xpEarnedToday,
+} from '../features/progress/xpLevels'
+import { spendableBalance } from '../features/progress/xpWallet'
+import { MasteryRing } from './MasteryRing'
 
 export function Layout() {
   const { user, profile, signOut } = useAuth()
@@ -13,6 +22,14 @@ export function Layout() {
   const rawName = profile?.displayName ?? user?.displayName ?? ''
   const firstName = rawName && rawName !== 'Learner' ? rawName.split(' ')[0] : ''
   const companionXp = profile?.companionXp ?? 0
+  const { level, rank, xpIntoLevel, xpForNextLevel } = levelFromXp(companionXp)
+  const today = todayDateString()
+  const xpToday = xpEarnedToday(profile?.xpToday, profile?.xpTodayDate, today)
+  const goalMet = isDailyGoalMet(xpToday)
+  const tokens = profile?.streakFreezeTokens ?? 0
+  const balance = spendableBalance(profile)
+  const streak = profile?.streakCount ?? 0
+  const frozeToday = profile?.lastStreakFreezeDate === today
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -45,25 +62,71 @@ export function Layout() {
                     Course
                   </Link>
                 )}
-                <div
-                  title={`${companionXp} XP earned with Pip`}
-                  className="flex items-center gap-1.5 rounded-full border border-lavender-200 bg-lavender-50 px-2.5 py-1.5 font-bold text-lavender-600 shadow-sm sm:px-3"
+                <Link
+                  to="/leaderboard"
+                  title="Leaderboard"
+                  className="rounded-lg px-1.5 py-1.5 text-base leading-none hover:bg-slate-100"
                 >
-                  <span aria-hidden className="text-base leading-none">
-                    ⭐
+                  <span aria-hidden>🏆</span>
+                  <span className="sr-only">Leaderboard</span>
+                </Link>
+                {/* Level ring + lifetime XP — tap to spend in the shop. */}
+                <Link
+                  to="/shop"
+                  title={`⭐ ${balance} spendable in the shop · ${rank} · Level ${level} · ${xpIntoLevel}/${xpForNextLevel} XP to next level (lifetime ${companionXp})`}
+                  className="flex items-center gap-1.5 rounded-full border border-lavender-200 bg-lavender-50 py-0.5 pl-0.5 pr-2.5 font-bold text-lavender-600 shadow-sm hover:border-lavender-300"
+                >
+                  <MasteryRing
+                    value={xpIntoLevel}
+                    total={xpForNextLevel}
+                    size={30}
+                    thickness={4}
+                    strokeClass="text-lavender-500"
+                    trackClass="text-lavender-100"
+                  >
+                    <span className="text-[11px] font-bold leading-none text-lavender-700">
+                      {level}
+                    </span>
+                  </MasteryRing>
+                  <span className="leading-none">⭐ {balance}</span>
+                  <span className="sr-only">
+                    level {level}, {balance} spendable experience points
                   </span>
-                  <span>{companionXp}</span>
-                  <span className="hidden sm:inline">XP</span>
-                  <span className="sr-only">experience points</span>
+                </Link>
+                {/* Daily XP goal ring. */}
+                <div
+                  title={`Daily goal: ${xpToday} / ${DAILY_XP_GOAL} XP${goalMet ? ' — done for today!' : ''}`}
+                  className="hidden sm:inline-flex"
+                >
+                  <MasteryRing
+                    value={xpToday}
+                    total={DAILY_XP_GOAL}
+                    size={30}
+                    thickness={4}
+                    strokeClass={goalMet ? 'text-lime-500' : 'text-lime-400'}
+                    trackClass="text-lime-100"
+                  >
+                    <span className="text-[11px] leading-none">{goalMet ? '✅' : '🎯'}</span>
+                  </MasteryRing>
                 </div>
                 <div
-                  title={`${profile?.streakCount ?? 0} day streak`}
-                  className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1.5 font-bold text-amber-700 shadow-sm sm:px-3"
+                  title={`${streak} day streak${
+                    tokens ? ` · ${tokens} streak freeze${tokens > 1 ? 's' : ''}` : ''
+                  }${frozeToday ? ' · a freeze saved your streak today' : ''}`}
+                  className="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1.5 font-bold text-amber-700 shadow-sm sm:px-3"
                 >
                   <span aria-hidden className="text-base leading-none">
                     🔥
                   </span>
-                  <span>{profile?.streakCount ?? 0}</span>
+                  <span>{streak}</span>
+                  {tokens > 0 && (
+                    <span className="ml-1 flex items-center gap-0.5 text-sky-600" title="Streak freezes">
+                      <span aria-hidden className="text-sm leading-none">
+                        🧊
+                      </span>
+                      <span>{tokens}</span>
+                    </span>
+                  )}
                   <span className="sr-only">day streak</span>
                 </div>
                 <button

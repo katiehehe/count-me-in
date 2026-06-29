@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
 import type { WorkedExampleConfig } from '../../content/types'
 import { useReducedMotion } from '../simulation/useReducedMotion'
-import { cancelSpeech, speakLine } from './ttsClient'
+import { cancelSpeech, prefetchLine, speakLine } from './ttsClient'
 import { WorkedExampleDiagram } from './workedExampleDiagrams'
 
 interface WorkedExampleStepProps {
@@ -62,6 +62,13 @@ export function WorkedExampleStep({ config, onDone }: WorkedExampleStepProps) {
     [],
   )
 
+  // Warm the opening line(s) up front so the first Play starts promptly.
+  useEffect(() => {
+    prefetchLine(script[0]?.say ?? '', voice, speedRef.current)
+    if (n > 1) prefetchLine(script[1].say, voice, speedRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function markDone() {
     if (markedRef.current) return
     markedRef.current = true
@@ -78,6 +85,8 @@ export function WorkedExampleStep({ config, onDone }: WorkedExampleStepProps) {
   useEffect(() => {
     if (!playing) return
     const reqId = ++reqRef.current
+    // Warm the next line's audio while this one plays, so beats flow with no gap.
+    if (beat + 1 < n) prefetchLine(script[beat + 1].say, voice, speedRef.current)
     speakLine(script[beat].say, voice, speedRef.current).then(() => {
       if (!mounted.current || reqId !== reqRef.current) return
       if (beat < n - 1) setBeat((b) => b + 1)

@@ -2,19 +2,38 @@ import {
   arrayUnion,
   collection,
   doc,
+  getCountFromServer,
   getDoc,
   getDocs,
   increment,
+  limit,
+  orderBy,
+  query,
   runTransaction,
   serverTimestamp,
   setDoc,
   Timestamp,
   updateDoc,
+  where,
 } from 'firebase/firestore'
 import { getFirestoreDb } from '../../firebase/firebaseClient'
-import type { DailyActivityDoc, LessonProgressDoc, UserProfile } from '../../firebase/firestoreTypes'
+import type {
+  DailyActivityDoc,
+  LeaderboardEntry,
+  LessonProgressDoc,
+  UserProfile,
+} from '../../firebase/firestoreTypes'
 import { initialSrsState, scheduleNext } from '../practice/conceptSrs'
-import { todayDateString, updateStreak } from './streaks'
+import { nextStreakFields, todayDateString } from './streaks'
+import { levelFromXp } from './xpLevels'
+import {
+  canAfford,
+  computeBuyAiPip,
+  computeSetCustomPip,
+  cosmeticById,
+  isCosmeticOwned,
+  STREAK_FREEZE_COST,
+} from './xpWallet'
 
 function userRef(uid: string) {
   return doc(getFirestoreDb(), 'users', uid)
@@ -26,6 +45,31 @@ function lessonProgressRef(uid: string, lessonId: string) {
 
 function dailyActivityRef(uid: string, date: string) {
   return doc(getFirestoreDb(), 'users', uid, 'dailyActivity', date)
+}
+
+function leaderboardRef(uid: string) {
+  return doc(getFirestoreDb(), 'leaderboard', uid)
+}
+
+/** First name only — the leaderboard is public, so never expose a full name or email. */
+function firstNameOnly(displayName: string): string {
+  const first = (displayName ?? '').trim().split(/\s+/)[0]
+  return first || 'Learner'
+}
+
+/** Mirrors the user's lifetime XP into the minimal public leaderboard doc. */
+async function upsertLeaderboardEntry(uid: string, displayName: string, companionXp: number) {
+  await setDoc(
+    leaderboardRef(uid),
+    {
+      uid,
+      displayName: firstNameOnly(displayName),
+      companionXp,
+      level: levelFromXp(companionXp).level,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
@@ -51,6 +95,15 @@ export async function ensureUserProfile(
     streakCount: 0,
     lastActiveDate: '',
     companionXp: 0,
+    spentXp: 0,
+    xpToday: 0,
+    xpTodayDate: '',
+    streakFreezeTokens: 0,
+    unlockedCosmetics: [],
+    equippedCosmetic: null,
+    customPipUrl: null,
+    customPipPrompt: null,
+    customPipGensLeft: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   }
@@ -62,16 +115,181 @@ export async function ensureUserProfile(
 
 export async function updateDisplayName(uid: string, displayName: string) {
   await updateDoc(userRef(uid), { displayName, updatedAt: serverTimestamp() })
+  // Keep the public leaderboard name in sync (only if they're already ranked).
+  try {
+    const p = await getUserProfile(uid)
+    if (p && (p.companionXp ?? 0) > 0) {
+      await upsertLeaderboardEntry(uid, displayName, p.companionXp ?? 0)
+    }
+  } catch {
+    /* best-effort */
+  }
 }
 
-/** Atomically adds companion XP (from AI Challenge Mode) to the user profile. */
+/**
+ * Adds LIFETIME XP (never decremented) and rolls it into today's `xpToday` tally
+ * for the daily goal, resetting that tally on a new day. Runs in a transaction so
+ * rapid awards can't race. Best-effort side writes: a daily-history `xpEarned`
+ * increment and the public leaderboard mirror.
+ */
 export async function awardCompanionXp(uid: string, amount: number) {
   if (amount <= 0) return
-  await setDoc(
-    userRef(uid),
-    { companionXp: increment(amount), updatedAt: serverTimestamp() },
-    { merge: true },
+  const ref = userRef(uid)
+  const today = todayDateString()
+  let newTotal = amount
+  let displayName = 'Learner'
+  await runTransaction(getFirestoreDb(), async (tx) => {
+    const snap = await tx.get(ref)
+    const p = snap.exists() ? (snap.data() as UserProfile) : null
+    newTotal = (p?.companionXp ?? 0) + amount
+    const xpToday = (p?.xpTodayDate === today ? p?.xpToday ?? 0 : 0) + amount
+    displayName = p?.displayName ?? 'Learner'
+    tx.set(
+      ref,
+      { companionXp: newTotal, xpToday, xpTodayDate: today, updatedAt: serverTimestamp() },
+      { merge: true },
+    )
+  })
+  try {
+    await setDoc(
+      dailyActivityRef(uid, today),
+      { date: today, xpEarned: increment(amount) },
+      { merge: true },
+    )
+  } catch {
+    /* best-effort: the header reads profile.xpToday, not this history doc */
+  }
+  try {
+    await upsertLeaderboardEntry(uid, displayName, newTotal)
+  } catch {
+    /* best-effort */
+  }
+}
+
+/**
+ * Buys one streak-freeze token from the SPENDABLE balance (companionXp − spentXp),
+ * incrementing `spentXp` (lifetime XP is untouched). Returns false if unaffordable.
+ */
+export async function buyStreakFreezeToken(uid: string): Promise<boolean> {
+  const ref = userRef(uid)
+  let ok = false
+  await runTransaction(getFirestoreDb(), async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const p = snap.data() as UserProfile
+    if (!canAfford(p, STREAK_FREEZE_COST)) return
+    tx.set(
+      ref,
+      {
+        spentXp: (p.spentXp ?? 0) + STREAK_FREEZE_COST,
+        streakFreezeTokens: (p.streakFreezeTokens ?? 0) + 1,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    )
+    ok = true
+  })
+  return ok
+}
+
+/**
+ * Buys a cosmetic by id, charging the catalog price (looked up in code, never from
+ * the caller) against the spendable balance. Returns false if unknown, already
+ * owned, or unaffordable.
+ */
+export async function purchaseCosmetic(uid: string, cosmeticId: string): Promise<boolean> {
+  const cosmetic = cosmeticById(cosmeticId)
+  if (!cosmetic || cosmetic.cost <= 0) return false
+  const ref = userRef(uid)
+  let ok = false
+  await runTransaction(getFirestoreDb(), async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const p = snap.data() as UserProfile
+    if (isCosmeticOwned(p, cosmeticId)) return
+    if (!canAfford(p, cosmetic.cost)) return
+    tx.set(
+      ref,
+      {
+        spentXp: (p.spentXp ?? 0) + cosmetic.cost,
+        unlockedCosmetics: [...(p.unlockedCosmetics ?? []), cosmeticId],
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    )
+    ok = true
+  })
+  return ok
+}
+
+/** Equips a cosmetic (must be owned, or null/'default' to reset). Returns success. */
+export async function equipCosmetic(uid: string, cosmeticId: string | null): Promise<boolean> {
+  const ref = userRef(uid)
+  let ok = false
+  await runTransaction(getFirestoreDb(), async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const p = snap.data() as UserProfile
+    if (cosmeticId && !isCosmeticOwned(p, cosmeticId)) return
+    tx.set(ref, { equippedCosmetic: cosmeticId, updatedAt: serverTimestamp() }, { merge: true })
+    ok = true
+  })
+  return ok
+}
+
+/**
+ * Buys the premium AI-Pip feature: spends `AI_PIP_COST` from the spendable
+ * balance, unlocks `ai-custom`, and (re)fills the generation allowance. Returns
+ * false if unaffordable.
+ */
+export async function buyAiPip(uid: string): Promise<boolean> {
+  const ref = userRef(uid)
+  let ok = false
+  await runTransaction(getFirestoreDb(), async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const r = computeBuyAiPip(snap.data() as UserProfile)
+    if (!r) return
+    tx.set(ref, { ...r, updatedAt: serverTimestamp() }, { merge: true })
+    ok = true
+  })
+  return ok
+}
+
+/**
+ * Applies a generated Pip image: stores the url + prompt, consumes one generation,
+ * and equips `ai-custom`. Returns false if no generations remain.
+ */
+export async function setCustomPip(uid: string, url: string, prompt: string): Promise<boolean> {
+  const ref = userRef(uid)
+  let ok = false
+  await runTransaction(getFirestoreDb(), async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const r = computeSetCustomPip(snap.data() as UserProfile, url, prompt)
+    if (!r) return
+    tx.set(ref, { ...r, updatedAt: serverTimestamp() }, { merge: true })
+    ok = true
+  })
+  return ok
+}
+
+/** Top leaderboard entries by lifetime XP (desc). */
+export async function getLeaderboardTop(max = 50): Promise<LeaderboardEntry[]> {
+  const q = query(
+    collection(getFirestoreDb(), 'leaderboard'),
+    orderBy('companionXp', 'desc'),
+    limit(max),
   )
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => d.data() as LeaderboardEntry)
+}
+
+/** 1-based rank of a given lifetime XP (count of strictly-higher entries + 1). */
+export async function getUserLeaderboardRank(companionXp: number): Promise<number> {
+  const q = query(collection(getFirestoreDb(), 'leaderboard'), where('companionXp', '>', companionXp))
+  const c = await getCountFromServer(q)
+  return c.data().count + 1
 }
 
 /** Marks the weekly review complete today (resets the 7-day cadence) and persists its weak lessons. */
@@ -101,7 +319,14 @@ export async function recordConceptReview(uid: string, conceptId: string, correc
     const prev = profile?.conceptSrs?.[conceptId] ?? initialSrsState(today)
     const next = scheduleNext(prev, correct, today)
     const conceptSrs = { ...(profile?.conceptSrs ?? {}), [conceptId]: next }
-    tx.set(ref, { conceptSrs, updatedAt: serverTimestamp() }, { merge: true })
+    // Answering a review question counts as real work, so it keeps the daily streak alive.
+    const streak = nextStreakFields(
+      profile?.streakCount ?? 0,
+      profile?.lastActiveDate || null,
+      profile?.streakFreezeTokens ?? 0,
+      today,
+    )
+    tx.set(ref, { conceptSrs, ...streak, updatedAt: serverTimestamp() }, { merge: true })
   })
 }
 
@@ -111,6 +336,7 @@ export async function recordConceptReview(uid: string, conceptId: string, correc
  */
 export async function recordConceptPractice(uid: string, conceptId: string, correct: boolean) {
   const ref = userRef(uid)
+  const today = todayDateString()
   await runTransaction(getFirestoreDb(), async (tx) => {
     const snap = await tx.get(ref)
     const profile = snap.exists() ? (snap.data() as UserProfile) : null
@@ -119,7 +345,14 @@ export async function recordConceptPractice(uid: string, conceptId: string, corr
       ? { correct: prev.correct + 1, wrong: prev.wrong }
       : { correct: prev.correct, wrong: prev.wrong + 1 }
     const conceptStats = { ...(profile?.conceptStats ?? {}), [conceptId]: next }
-    tx.set(ref, { conceptStats, updatedAt: serverTimestamp() }, { merge: true })
+    // Practicing is real work, so it keeps the daily streak alive (idempotent per day).
+    const streak = nextStreakFields(
+      profile?.streakCount ?? 0,
+      profile?.lastActiveDate || null,
+      profile?.streakFreezeTokens ?? 0,
+      today,
+    )
+    tx.set(ref, { conceptStats, ...streak, updatedAt: serverTimestamp() }, { merge: true })
   })
 }
 
@@ -391,20 +624,20 @@ function mergeBestConceptMastery(
 }
 
 async function updateUserStreak(uid: string) {
-  const profile = await getUserProfile(uid)
-  if (!profile) return
-
+  const ref = userRef(uid)
   const today = todayDateString()
-  const { streakCount, lastActiveDate } = updateStreak(
-    profile.streakCount,
-    profile.lastActiveDate || null,
-    today,
-  )
-
-  await updateDoc(userRef(uid), {
-    streakCount,
-    lastActiveDate,
-    updatedAt: serverTimestamp(),
+  // Transaction so a freeze-token decrement can't race a concurrent purchase.
+  await runTransaction(getFirestoreDb(), async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const profile = snap.data() as UserProfile
+    const fields = nextStreakFields(
+      profile.streakCount ?? 0,
+      profile.lastActiveDate || null,
+      profile.streakFreezeTokens ?? 0,
+      today,
+    )
+    tx.set(ref, { ...fields, updatedAt: serverTimestamp() }, { merge: true })
   })
 }
 
@@ -428,12 +661,14 @@ async function recordDailyActivity(
     return
   }
 
+  // Default each counter — the doc may have been created by an XP-only write
+  // (awardCompanionXp) that set just `date` + `xpEarned`, leaving these unset.
   const current = snap.data() as DailyActivityDoc
   await updateDoc(ref, {
-    lessonsCompleted: current.lessonsCompleted + (opts.lessonCompleted ? 1 : 0),
-    questionsAnswered: current.questionsAnswered + (opts.answered ? 1 : 0),
-    correctAnswers: current.correctAnswers + (opts.correct ? 1 : 0),
-    activeMinutesEstimate: current.activeMinutesEstimate + 1,
+    lessonsCompleted: (current.lessonsCompleted ?? 0) + (opts.lessonCompleted ? 1 : 0),
+    questionsAnswered: (current.questionsAnswered ?? 0) + (opts.answered ? 1 : 0),
+    correctAnswers: (current.correctAnswers ?? 0) + (opts.correct ? 1 : 0),
+    activeMinutesEstimate: (current.activeMinutesEstimate ?? 0) + 1,
   })
 }
 
