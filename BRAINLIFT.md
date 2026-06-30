@@ -1,10 +1,14 @@
-# Brainlift — Phase 2 AI Challenge Mode
+# Brainlift — Count Me In
 
-This document records the key decisions behind Count Me In's Phase 2 AI feature:
-why we built **Challenge Mode**, why we deliberately did **not** build a general
-chatbot, how every AI call is **grounded in structured lesson state**, and how
-**math correctness is verified deterministically in code** rather than trusted to
-the model.
+This document records the key design decisions behind Count Me In. It started as
+the Phase 2 AI rationale — why we built **Challenge Mode**, why we deliberately did
+**not** build a general chatbot, how every AI call is **grounded in structured
+lesson state**, and how **math correctness is verified deterministically in code**
+rather than trusted to the model. It now also covers the **learning-science systems**
+that shipped after Phase 2 (spaced repetition, weak-spot targeting, delayed-feedback
+self-testing, and progress-tied motivation), including **how missed concepts
+reschedule future practice** — see [Learning-science systems](#learning-science-systems-after-phase-2)
+at the end.
 
 ## What we shipped
 
@@ -181,3 +185,94 @@ two-tier hints render instead and nothing else changes.
   state. Lesson completion, mastery, and unlocking never depend on AI.
 - **Demo guests.** Anonymous demo sessions never write to Firestore; challenge
   session/response persistence is skipped for them, mirroring the Phase 1 demo store.
+
+## Learning-science systems (after Phase 2)
+
+After the AI work, we deepened the parts of the app that make learning *stick* over
+time. The throughline: schedule practice by what the learner actually misses, test
+with delayed feedback, and tie motivation to real progress rather than praise.
+
+### Retrieval and pretesting
+
+- **Prequestions.** Every lesson opens with a quick predict-then-reveal guess before
+  anything is explained. Pretesting primes attention and improves retention even when
+  the first guess is wrong.
+- **Narrated worked examples.** Each lesson then shows a "watch me solve one"
+  whiteboard where numbers and formulas appear gradually with spoken narration
+  (worked-example effect + modality principle: explain over a labeled visual, not a
+  wall of text). Support then **fades** to guided questions the learner does alone.
+- **Explain-back.** Challenge Mode forces recall and self-explanation in the
+  learner's own words, which is far more durable than the recognition a lesson mostly
+  exercises.
+
+### Spacing: per-concept spaced repetition (SM-2-lite)
+
+Instead of a flat weekly quiz, **every learned concept carries its own schedule**
+(`ConceptSrsState`: `reps`, `intervalDays`, `ease`, `due`, `lapses`,
+`lastReviewed`), implemented in `src/features/practice/conceptSrs.ts`. Review
+sessions pull only the concepts that are actually **due**
+(`reviewDueConceptIds`, most-overdue first, capped at `MAX_REVIEW_ITEMS = 40`), and
+the weekly review surfaces once ≥7 days have passed *and* something is due.
+
+#### How missed concepts reschedule future practice
+
+This is the core feedback loop the whole adaptive system turns on. When a learner
+answers a review/practice item, `scheduleNext(state, correct, today)` computes the
+concept's next appearance:
+
+- **Correct** → the concept is pushed *further out*: `reps + 1`, interval grows
+  `1 → 3 → round(interval × ease)` days, and `ease` ticks up by `0.05` (capped at
+  `2.7`). Well-mastered concepts resurface less and less often, freeing review time
+  for weaker ones.
+- **Miss** → the concept is pulled *back in*: `reps` resets to `0`, `intervalDays`
+  drops to `1`, `ease` falls by `0.2` (floored at `1.3`), a `lapse` is counted, and
+  crucially **`due` is set to today** — so the concept is immediately due again and
+  is re-tested *in the same session* until it's answered correctly, then keeps
+  reappearing on a short interval until it's relearned.
+
+A miss also **lowers the lesson's mastery tier** (`lowerMasteryFromReview`), so a
+concept can fall out of "green" and become eligible to earn XP again — mastery is a
+two-way signal, never permanently banked. Net effect: **one missed question today
+directly schedules more of that exact concept, sooner**, while everything you keep
+getting right quietly recedes. This is covered by `conceptSrs.test.ts` (interval
+growth, miss → due-today, ease clamping, due selection).
+
+### Delayed feedback and interleaving
+
+- **Self-test (Training Lab).** A configurable test mode (`TestPlayer`) holds
+  feedback until the end of the set, rather than grading each item instantly —
+  delayed feedback produces stronger long-term retention than immediate feedback for
+  assessment. The learner picks topics, difficulty, time, and length.
+- **Interleaving.** Review, weak-spot workouts, and the capstone/contest lessons mix
+  concepts so the learner has to *choose* the right tool, not just repeat the last
+  procedure — which is exactly the skill contests demand.
+
+### Weak-spot targeting
+
+Per-concept practice stats (`conceptStats`: correct/wrong counts) blend with recorded
+lesson misses to compute a live weakness score, so the cross-lesson "weak spots"
+workout always targets the learner's real trouble areas (shown as severity dots, not
+raw numbers) and adapts as performance changes.
+
+### Motivation tied to progress, not empty praise
+
+- **XP rewards understanding, not clicks.** XP is awarded only on **first-try**
+  correct answers and is **mastery-gated** — once a lesson is green it pays 0, so XP
+  tracks genuine new learning. A small exponential **time bonus** rewards fluency.
+  Weak-spot workouts still pay (they target weak *concepts*), and Challenge XP is
+  computed in code from the understanding label (0 for needs-review), never taken
+  from the model.
+- **Progress is the reward.** Lifetime XP drives **levels/ranks** and a
+  **leaderboard**; a separate spendable wallet (lifetime − spent) funds sinks —
+  **streak-freeze** tokens (protect a streak you earned), **Pip cosmetics**, and a
+  premium **AI custom Pip**. The reward loop reinforces *doing the work*, and a
+  daily-XP goal ring nudges a light habit without nagging.
+
+### Deliberately left out / future work
+
+- We schedule by concept, not by individual item — simpler and enough signal at this
+  course size.
+- The SM-2-lite curve is intentionally conservative; tuning ease/interval constants
+  against real usage data is a natural next step.
+- A fuller analytics view (per-concept retention over time) would help a learner see
+  the spacing system working, and is a good follow-up.
